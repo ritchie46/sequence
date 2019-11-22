@@ -31,3 +31,9 @@ def masked_flip(padded_sequence, sequence_lengths):
         for i, length in enumerate(sequence_lengths)
     ]
     return torch.nn.utils.rnn.pad_sequence(sequences, padding_value=-1)
+
+
+def get_batch_size(h):
+    if isinstance(h, tuple):
+        return h[0].shape[1]
+    return h.shape[1]

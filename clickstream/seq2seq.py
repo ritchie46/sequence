@@ -2,8 +2,7 @@ from torch import nn
 import numpy as np
 import torch.nn.functional as F
 import torch
-
-from clickstream.utils import masked_flip
+from clickstream.utils import masked_flip, get_batch_size
 
 
 class EncoderDecoder(nn.Module):
@@ -105,6 +104,7 @@ def decoder_loss_batched(
     loss = 0
     w = None
     h = model.encode(packed_padded)
+    batch_size = get_batch_size(h)
     padded, lengths = torch.nn.utils.rnn.pad_packed_sequence(
         packed_padded, padding_value=-1
     )
@@ -132,7 +132,7 @@ def decoder_loss_batched(
         else:
             # new word
             w = out.argmax(1).detach()
-    return loss
+    return loss / batch_size
 
 
 def decoder_loss(m, padded):

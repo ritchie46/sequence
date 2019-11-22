@@ -41,7 +41,7 @@ class Dataset:
                 self.language.register_single_word(w)
             idx.append(self.language.w2i[w])
         idx.append(0)
-        return torch.tensor(idx)
+        return torch.tensor(idx, dtype=torch.int)
 
     def transform_data(self):
         self.data = list(
@@ -70,7 +70,7 @@ class Dataset:
         """
         idx = self.idx[start:end]
         x = [self.data[i].to(device) for i in idx]
-        padded = torch.nn.utils.rnn.pad_sequence(x, padding_value=-1)
+        padded = torch.nn.utils.rnn.pad_sequence(x, padding_value=-1).long()
 
         return (
             torch.nn.utils.rnn.pack_padded_sequence(

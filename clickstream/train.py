@@ -16,6 +16,7 @@ def run_epoch(
     batched=True,
     verbosity=0,
     reverse_target=False,
+    tensorboard_writer=None,
 ):
     """
     Train one epoch.
@@ -41,23 +42,38 @@ def run_epoch(
     model.train()
     n_total = len(dataset)
     dataset.shuffle()
+    n_batches = n_total // batch_size
 
-    for i in range(n_total // batch_size):
+    c = 0
+    for i in range(n_batches):
+        c += 1
         optim.zero_grad()
         i = i * batch_size
 
         packed_padded, padded = dataset.get_batch(i, i + batch_size, device=device)
         if not batched:
             if not nullify_rnn_input:
-                logger.warning("Argmument `nullify_rnn_input` is not used when using non batched learning.")
-            logger.warning("Argument `teacher_forcing_p` is not used when using non batched learning.")
+                logger.warning(
+                    "Argmument `nullify_rnn_input` is not used when using non batched learning."
+                )
+            logger.warning(
+                "Argument `teacher_forcing_p` is not used when using non batched learning."
+            )
             loss = decoder_loss(model, padded)
         else:
             loss = decoder_loss_batched(
                 model, packed_padded, teach_forcing_p, nullify_rnn_input, reverse_target
             )
+            logger.debug(
+                "{}/{}\t{}%\tLoss: {:.4f}".format(
+                    c, n_batches, int(c / n_batches * 100), loss.item()
+                )
+            )
+
         loss.backward()
         optim.step()
 
-    level = logging.DEBUG if verbosity == 0 else logging.INFO
-    logger.log(level, "Epoch: {}\tLoss{:.4f}".format(epoch, loss.item()))
+        if tensorboard_writer is not None:
+            tensorboard_writer.add_scalar("Loss", loss.item())
+
+    logger.debug("Epoch: {}\tLoss{:.4f}".format(epoch, loss.item()))
