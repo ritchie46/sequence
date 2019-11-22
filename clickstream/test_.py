@@ -6,6 +6,7 @@ import random
 from clickstream.train import run_epoch
 import torch
 import numpy as np
+from clickstream import utils
 
 
 @pytest.fixture(scope="module")
@@ -91,7 +92,7 @@ def test_non_batched(dataset, language):
         m.cuda()
     optim = torch.optim.Adam(m.parameters(), lr=0.01)
     for _ in range(10):
-        run_epoch(1, m, optim, dataset, batch_size, device=device, slow=True)
+        run_epoch(1, m, optim, dataset, batch_size, device=device, batched=False)
 
     packed_padded, padded = dataset.get_batch(0, 25, device=device)
 
@@ -135,6 +136,7 @@ def test_batched(dataset, language):
             device=device,
             nullify_rnn_input=True,
             verbosity=1,
+            reverse_target=True
         )
 
     packed_padded, padded = dataset.get_batch(0, 25, device=device)
@@ -145,3 +147,17 @@ def test_batched(dataset, language):
 
     for i in range(padded.shape[1]):
         print(padded[: lengths[i], i].cpu(), out[i, : lengths[i]].cpu())
+
+
+def test_reverse_target():
+    sequences = [[1, 2, 3], [1, 2, 3, 4, 5], [1]]
+    sequences = [torch.tensor(a) for a in sequences]
+    lengths = [3, 5, 1]
+    padded = torch.nn.utils.rnn.pad_sequence(sequences, padding_value=-1)
+    padded_new = utils.masked_flip(padded.T, lengths)
+    np.testing.assert_allclose(np.array([[3, 5, 1],
+                                         [2, 4, -1],
+                                         [1, 3, -1],
+                                         [-1, 2, -1],
+                                         [-1, 1, -1]]), padded_new.numpy())
+

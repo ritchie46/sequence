@@ -3,6 +3,8 @@ import numpy as np
 import torch.nn.functional as F
 import torch
 
+from clickstream.utils import masked_flip
+
 
 class EncoderDecoder(nn.Module):
     def __init__(
@@ -94,18 +96,28 @@ class EncoderDecoder(nn.Module):
 
 
 def decoder_loss_batched(
-    m, h, packed_padded, teach_forcing_p=0.5, nullify_rnn_input=False
+    model,
+    packed_padded,
+    teach_forcing_p=0.5,
+    nullify_rnn_input=False,
+    reverse_target=False,
 ):
     loss = 0
     w = None
+    h = model.encode(packed_padded)
     padded, lengths = torch.nn.utils.rnn.pad_packed_sequence(
         packed_padded, padding_value=-1
     )
+    if reverse_target:
+        padded = masked_flip(padded.T, lengths)
+
+        # remove EOS token
+        padded = padded[1:, :]
 
     # Loop is over the words in a sequence. Not over the batch
     for i in range(padded.shape[0]):
         target = padded[i, :]
-        out, h = m.decode(word=w, h=h)
+        out, h = model.decode(word=w, h=h)
 
         # ignore the targets that are -1 (this is the padding value)
         loss_ = F.nll_loss(out, target, ignore_index=-1, reduction="none")
