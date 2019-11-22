@@ -1,4 +1,7 @@
 from clickstream.seq2seq import decoder_loss, decoder_loss_batched
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 def run_epoch(
@@ -10,8 +13,8 @@ def run_epoch(
     teach_forcing_p=0.5,
     device="cpu",
     nullify_rnn_input=False,
-    slow=False
-
+    slow=False,
+    verbosity=0,
 ):
     m.train()
     n_total = len(dataset)
@@ -23,12 +26,14 @@ def run_epoch(
 
         packed_padded, padded = dataset.get_batch(i, i + batch_size, device=device)
         if slow:
-            loss = decoder_loss(
-                m, padded
-            )
+            loss = decoder_loss(m, padded)
         else:
             z = m.encode(packed_padded)
-            loss = decoder_loss_batched(m, z, padded, teach_forcing_p, nullify_rnn_input)
+            loss = decoder_loss_batched(
+                m, z, packed_padded, teach_forcing_p, nullify_rnn_input
+            )
         loss.backward()
         optim.step()
-    print(loss)
+
+    level = logging.DEBUG if verbosity == 0 else logging.INFO
+    logger.log(level, "Epoch: {}\tLoss{:.4f}".format(e, loss.item()))

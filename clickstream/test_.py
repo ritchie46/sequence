@@ -5,6 +5,7 @@ import pytest
 import random
 from clickstream.train import run_epoch
 import torch
+import numpy as np
 
 
 @pytest.fixture(scope="module")
@@ -16,7 +17,9 @@ def words():
 def paths(words):
     # Create random sequences with random length
     random.seed(1)
-    return [a[: random.choice(range(1, 9))] for a in permutations("".join(words))][:2000]
+    return [a[: random.choice(range(1, 9))] for a in permutations("".join(words))][
+        :2000
+    ]
 
 
 @pytest.fixture(scope="module")
@@ -70,12 +73,15 @@ def test_encoder_decoder_flow(dataset, language):
     assert z.shape[1:] == (batch_size, latent_size)
 
 
-def test_(dataset, language):
-    latent_size = 128
+def test_non_batched(dataset, language):
+    torch.manual_seed(0)
+    np.random.seed(0)
+
+    latent_size = 32
     batch_size = 64
     m = EncoderDecoder(
         vocabulary_size=language.vocabulary_size,
-        embedding_dim=32,
+        embedding_dim=8,
         latent_size=latent_size,
         bidirectional=True,
         rnn_layers=1,
@@ -85,9 +91,7 @@ def test_(dataset, language):
         m.cuda()
     optim = torch.optim.Adam(m.parameters(), lr=0.01)
     for _ in range(10):
-        run_epoch(
-            1, m, optim, dataset, batch_size, device=device,  slow=True
-        )
+        run_epoch(1, m, optim, dataset, batch_size, device=device, slow=True)
 
     packed_padded, padded = dataset.get_batch(0, 25, device=device)
 
@@ -104,22 +108,33 @@ def test_(dataset, language):
 
 
 def test_batched(dataset, language):
-    latent_size = 128
-    batch_size = 8
+    torch.manual_seed(0)
+    np.random.seed(0)
+
+    latent_size = 16
+    batch_size = 64
     m = EncoderDecoder(
         vocabulary_size=language.vocabulary_size,
-        embedding_dim=32,
+        embedding_dim=8,
         latent_size=latent_size,
         bidirectional=True,
         rnn_layers=1,
     )
+
     device = "cuda"
     if device == "cuda":
         m.cuda()
     optim = torch.optim.Adam(m.parameters(), lr=0.01)
-    for _ in range(10):
+    for e in range(10):
         run_epoch(
-            1, m, optim, dataset, batch_size, device=device, nullify_rnn_input=True
+            e,
+            m,
+            optim,
+            dataset,
+            batch_size,
+            device=device,
+            nullify_rnn_input=True,
+            verbosity=1,
         )
 
     packed_padded, padded = dataset.get_batch(0, 25, device=device)
@@ -128,10 +143,5 @@ def test_batched(dataset, language):
     # invert padding
     _, lengths = torch.nn.utils.rnn.pad_packed_sequence(packed_padded)
 
-    print(out)
-
     for i in range(padded.shape[1]):
-        print(padded[:lengths[i], i], out[i, :lengths[i]])
-
-
-
+        print(padded[: lengths[i], i].cpu(), out[i, : lengths[i]].cpu())

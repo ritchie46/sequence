@@ -2,11 +2,17 @@ from torch import nn
 import numpy as np
 import torch.nn.functional as F
 import torch
-from clickstream.utils import elementwise_apply
 
 
 class EncoderDecoder(nn.Module):
-    def __init__(self, vocabulary_size, embedding_dim=10, latent_size=20, bidirectional=True, rnn_layers=1):
+    def __init__(
+        self,
+        vocabulary_size,
+        embedding_dim=10,
+        latent_size=20,
+        bidirectional=True,
+        rnn_layers=1,
+    ):
         super().__init__()
         if bidirectional:
             linear_in = latent_size * 2
@@ -15,10 +21,20 @@ class EncoderDecoder(nn.Module):
 
         self.vocabulary_size = vocabulary_size
         self.emb = nn.Embedding(vocabulary_size, embedding_dim)
-        self.rnn_enc = nn.GRU(embedding_dim, latent_size, bidirectional=bidirectional, num_layers=rnn_layers)
+        self.rnn_enc = nn.GRU(
+            embedding_dim,
+            latent_size,
+            bidirectional=bidirectional,
+            num_layers=rnn_layers,
+        )
 
         # decoder
-        self.rnn_dec = nn.GRU(embedding_dim, latent_size, bidirectional=bidirectional, num_layers=rnn_layers)
+        self.rnn_dec = nn.GRU(
+            embedding_dim,
+            latent_size,
+            bidirectional=bidirectional,
+            num_layers=rnn_layers,
+        )
         self.decoder_out = nn.Sequential(
             nn.Linear(linear_in, vocabulary_size), nn.LogSoftmax(1)
         )
@@ -38,10 +54,15 @@ class EncoderDecoder(nn.Module):
             shape: (batch, input_size)
         """
         if isinstance(x, torch.nn.utils.rnn.PackedSequence):
-            emb = elementwise_apply(self.emb, x)
+            padded, lengths = torch.nn.utils.rnn.pad_packed_sequence(x, padding_value=0)
+            emb = self.emb(padded)
+            emb = torch.nn.utils.rnn.pack_padded_sequence(
+                emb, lengths, enforce_sorted=False
+            )
         else:
             emb = self.emb(x).reshape(len(x), 1, -1)
         out, h = self.rnn_enc(emb)
+
         return h
 
     def decode(self, word=None, h=None):
@@ -72,18 +93,23 @@ class EncoderDecoder(nn.Module):
         return self.decoder_out(out.reshape(batch_size, -1)), h
 
 
-def decoder_loss_batched(m, h, padded, teach_forcing_p=0.5, nullify_rnn_input=False):
+def decoder_loss_batched(
+    m, h, packed_padded, teach_forcing_p=0.5, nullify_rnn_input=False
+):
     loss = 0
     w = None
+    padded, lengths = torch.nn.utils.rnn.pad_packed_sequence(
+        packed_padded, padding_value=-1
+    )
+
     # Loop is over the words in a sequence. Not over the batch
     for i in range(padded.shape[0]):
         target = padded[i, :]
-
         out, h = m.decode(word=w, h=h)
 
         # ignore the targets that are -1 (this is the padding value)
-        loss_ = F.nll_loss(out, target, ignore_index=-1, reduction='sum')
-        loss += loss_
+        loss_ = F.nll_loss(out, target, ignore_index=-1, reduction="none")
+        loss += (loss_ / lengths.to(loss_.device)).sum()
 
         if nullify_rnn_input:
             w = None
@@ -94,11 +120,7 @@ def decoder_loss_batched(m, h, padded, teach_forcing_p=0.5, nullify_rnn_input=Fa
         else:
             # new word
             w = out.argmax(1).detach()
-    if isinstance(h, tuple):
-        batch_size = h[0].shape[1]
-    else:
-        batch_size = h.shape[1]
-    return loss / batch_size
+    return loss
 
 
 def decoder_loss(m, padded):
@@ -111,7 +133,6 @@ def decoder_loss(m, padded):
         sen_loss = 0
         for j in range(len(target)):
             out, z = m.decode(word=None, h=z)
-
             sen_loss += F.nll_loss(out.reshape(1, -1), target[j].unsqueeze(0))
 
         loss += sen_loss / len(target)
