@@ -34,6 +34,7 @@ def run_epoch(
     batched : bool
     reverse_target : bool
         Predict the inverted sentence. Leads to cleaner representations.
+    tensorboard_writer : SummaryWriter
     """
     model.train()
     n_total = len(dataset)
