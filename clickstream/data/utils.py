@@ -25,10 +25,11 @@ class Language:
 
 
 class Dataset:
-    def __init__(self, paths, language, skip=()):
+    def __init__(self, paths, language, skip=(), chunk_size=int(1e4)):
         self.skip = set(skip)
         self.data = np.array([[]])
         self.max_len = None
+        self.chunk_size = chunk_size
         # used for shuffling
         self.idx = None
         self.language = language
@@ -45,14 +46,15 @@ class Dataset:
         idx[i + 1] = 0
         return np.array(idx)
 
-    def transform_data(self, paths, max_len=None, chunk_size=1000):
+    def transform_data(self, paths, max_len=None):
         if max_len is None:
             max_len = max(map(len, paths))
         self.max_len = max_len
 
         size = len(paths)
         for i, j in zip(
-            range(0, size, chunk_size), range(chunk_size, size + chunk_size, chunk_size)
+            range(0, size, self.chunk_size),
+            range(self.chunk_size, size + self.chunk_size, self.chunk_size),
         ):
             j = min(size, j)
 
@@ -91,7 +93,7 @@ class Dataset:
         idx_cond = np.argwhere(x == 0)
         lengths = idx_cond[np.unique(idx_cond[:, 0], return_index=True)[1]][:, 1] + 1
 
-        padded = torch.tensor(x.T, dtype=torch.long).to(device)[:max(lengths) + 1, :]
+        padded = torch.tensor(x.T, dtype=torch.long).to(device)[: max(lengths) + 1, :]
         return (
             torch.nn.utils.rnn.pack_padded_sequence(
                 padded, lengths=lengths, enforce_sorted=False
