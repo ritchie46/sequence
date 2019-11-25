@@ -18,9 +18,8 @@ def words():
 def paths(words):
     # Create random sequences with random length
     random.seed(1)
-    return [a[: random.choice(range(1, 9))] for a in permutations("".join(words))][
-        :2000
-    ]
+    perm = permutations("".join(words))
+    return [next(perm)[: random.choice(range(1, 9))] for _ in range(2000)]
 
 
 @pytest.fixture(scope="module")
@@ -135,7 +134,6 @@ def test_batched(dataset, language):
             batch_size,
             device=device,
             nullify_rnn_input=True,
-            verbosity=1,
             reverse_target=True
         )
 
@@ -161,3 +159,11 @@ def test_reverse_target():
                                          [-1, 2, -1],
                                          [-1, 1, -1]]), padded_new.numpy())
 
+
+def test_dask_arrays(paths, language):
+    ds = Dataset(paths, language)
+    packed_padded, padded = ds.get_batch(58, 64)
+    assert torch.all(packed_padded.data != -1)
+
+    padded_, _ = torch.nn.utils.rnn.pad_packed_sequence(packed_padded, padding_value=-1)
+    np.testing.assert_allclose(padded, padded_)

@@ -14,7 +14,6 @@ def run_epoch(
     device="cpu",
     nullify_rnn_input=False,
     batched=True,
-    verbosity=0,
     reverse_target=False,
     tensorboard_writer=None,
 ):
@@ -33,9 +32,6 @@ def run_epoch(
         "cpu" or "cuda"
     nullify_rnn_input : bool
     batched : bool
-    verbosity : int
-        0 -> INFO
-        1 -> DEBUG
     reverse_target : bool
         Predict the inverted sentence. Leads to cleaner representations.
     """
