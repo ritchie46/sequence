@@ -27,7 +27,7 @@ class Language:
 class Dataset:
     def __init__(self, paths, language, skip=()):
         self.skip = set(skip)
-        self.data = np.array([])
+        self.data = np.array([[]])
         self.max_len = None
         # used for shuffling
         self.idx = None
@@ -54,13 +54,13 @@ class Dataset:
         for i, j in zip(
             range(0, size, chunk_size), range(chunk_size, size + chunk_size, chunk_size)
         ):
-            j = max(size, j)
+            j = min(size, j)
 
             a = np.array(list(map(self.transform_sentence, paths[i:j])))
             mask = np.sum(a, 1) == -(self.max_len + 1)
             a = a[~mask]
+            self.data = da.concatenate([self.data, a], axis=0)
 
-        self.data = da.block([self.data, a])
         self.idx = np.arange(len(self.data), dtype=np.int32)
 
     def shuffle(self):

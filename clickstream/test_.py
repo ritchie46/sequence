@@ -164,6 +164,7 @@ def test_dask_arrays(paths, language):
     ds = Dataset(paths, language)
     packed_padded, padded = ds.get_batch(58, 64)
     assert torch.all(packed_padded.data != -1)
+    assert ds.data.shape == (2000, 9)
 
     padded_, _ = torch.nn.utils.rnn.pad_packed_sequence(packed_padded, padding_value=-1)
     np.testing.assert_allclose(padded, padded_)
