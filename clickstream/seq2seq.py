@@ -13,15 +13,41 @@ class EncoderDecoder(nn.Module):
         latent_size=20,
         bidirectional=True,
         rnn_layers=1,
+        custom_embeddings=None
     ):
+        """
+        Seq2Seq econder decoder model.
+
+        Parameters
+        ----------
+        vocabulary_size : int
+            Number of words in the vocabulary
+        embedding_dim : int
+            Size of the embeddings.
+        latent_size : int
+            Size of the hidden state vectors of the RNN.
+        bidirectional : bool
+            Bidirectional RNN.
+        rnn_layers : int
+            Number of RNN layers.
+        custom_embeddings : torch.tensor
+            Custom word embeddings, such as GLOVE or Word2Vec.
+        """
         super().__init__()
         if bidirectional:
             linear_in = latent_size * 2
         else:
             linear_in = latent_size
 
+        if custom_embeddings is None:
+            self.emb = nn.Embedding(vocabulary_size, embedding_dim)
+        else:
+            vocabulary_size = custom_embeddings.shape[0]
+            embedding_dim = custom_embeddings.shape[1]
+            self.emb = nn.Embedding(*custom_embeddings.shape, _weight=custom_embeddings)
+            self.emb.weight.requires_grad = False
+
         self.vocabulary_size = vocabulary_size
-        self.emb = nn.Embedding(vocabulary_size, embedding_dim)
         self.rnn_enc = nn.GRU(
             embedding_dim,
             latent_size,

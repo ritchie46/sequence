@@ -134,7 +134,7 @@ def test_batched(dataset, language):
             batch_size,
             device=device,
             nullify_rnn_input=True,
-            reverse_target=True
+            reverse_target=True,
         )
 
     packed_padded, padded = dataset.get_batch(0, 25, device=device)
@@ -153,11 +153,10 @@ def test_reverse_target():
     lengths = [3, 5, 1]
     padded = torch.nn.utils.rnn.pad_sequence(sequences, padding_value=-1)
     padded_new = utils.masked_flip(padded.T, lengths)
-    np.testing.assert_allclose(np.array([[3, 5, 1],
-                                         [2, 4, -1],
-                                         [1, 3, -1],
-                                         [-1, 2, -1],
-                                         [-1, 1, -1]]), padded_new.numpy())
+    np.testing.assert_allclose(
+        np.array([[3, 5, 1], [2, 4, -1], [1, 3, -1], [-1, 2, -1], [-1, 1, -1]]),
+        padded_new.numpy(),
+    )
 
 
 def test_dask_arrays(paths, language):
@@ -168,3 +167,15 @@ def test_dask_arrays(paths, language):
 
     padded_, _ = torch.nn.utils.rnn.pad_packed_sequence(packed_padded, padding_value=-1)
     np.testing.assert_allclose(padded, padded_)
+
+
+def test_custom_embedding_initialization():
+    vocab_size = 10
+    embedding_size = 3
+    w2v = torch.ones(vocab_size, embedding_size)
+    m = EncoderDecoder(
+        vocabulary_size=vocab_size, embedding_dim=None, custom_embeddings=w2v
+    )
+    emb = m.emb(torch.tensor([1], dtype=torch.long))
+    np.testing.assert_allclose(emb.numpy(), np.ones((1, 3)))
+
