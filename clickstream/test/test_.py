@@ -68,8 +68,6 @@ def test_encoder_decoder_flow(dataset, language):
     assert z.shape[1:] == (batch_size, latent_size)
 
 
-
-
 def test_reverse_target():
     sequences = [[1, 2, 3], [1, 2, 3, 4, 5], [1]]
     sequences = [torch.tensor(a) for a in sequences]
@@ -104,7 +102,7 @@ def test_custom_embedding_initialization():
 
 
 def test_rnn_init():
-    m = EncoderDecoder(vocabulary_size=1, rnn_type='lstm')
+    m = EncoderDecoder(vocabulary_size=1, rnn_type="lstm")
     assert isinstance(m.rnn_enc, torch.nn.LSTM)
-    m = EncoderDecoder(vocabulary_size=1, rnn_type='gru')
+    m = EncoderDecoder(vocabulary_size=1, rnn_type="gru")
     assert isinstance(m.rnn_enc, torch.nn.GRU)
