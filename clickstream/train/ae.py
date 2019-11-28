@@ -1,5 +1,5 @@
 import logging
-from clickstream.model.seq2seq import decoder_loss, decoder_loss_batched
+from clickstream.model.seq2seq import det_loss, det_loss_batched
 
 logger = logging.getLogger(__name__)
 
@@ -56,9 +56,9 @@ def run_epoch(
             logger.warning(
                 "Argument `teacher_forcing_p` is not used when using non batched learning."
             )
-            loss = decoder_loss(model, padded)
+            loss = det_loss(model, padded)
         else:
-            loss = decoder_loss_batched(
+            loss = det_loss_batched(
                 model, packed_padded, teach_forcing_p, nullify_rnn_input, reverse_target
             )
             logger.debug(

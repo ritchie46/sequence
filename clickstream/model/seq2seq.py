@@ -130,13 +130,30 @@ class EncoderDecoder(nn.Module):
         return self.decoder_out(out.reshape(batch_size, -1)), h
 
 
-def decoder_loss_batched(
+def det_loss_batched(
     model,
     packed_padded,
     teach_forcing_p=0.5,
     nullify_rnn_input=False,
     reverse_target=False,
 ):
+    """
+
+    Parameters
+    ----------
+    model : clickstream.model.seq2seq.EncoderDecoder
+    packed_padded : torch.nn.utils.rnn.PackedSequence
+    teach_forcing_p : float
+    nullify_rnn_input : bool
+    reverse_target : bool
+        Predict A B, C --> C, B, A if True,
+        Else; A, B, C --> A, B, C
+
+    Returns
+    -------
+    loss : torch.tensor
+    """
+
     loss = 0
     w = None
     h = model.encode(packed_padded)
@@ -171,7 +188,19 @@ def decoder_loss_batched(
     return loss / batch_size
 
 
-def decoder_loss(m, padded):
+def det_loss(m, padded):
+    """
+
+    Parameters
+    ----------
+    m : clickstream.model.seq2seq.EncoderDecoder
+    padded : torch.tensor
+        -1 padded sequences
+
+    Returns
+    -------
+    loss : torch.tensor
+    """
     loss = 0
     for i in range(padded.shape[1]):
         target = padded[:, i]

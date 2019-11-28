@@ -1,6 +1,6 @@
 from itertools import permutations
 from clickstream.data.utils import Language, Dataset
-from clickstream.model.seq2seq import EncoderDecoder, decoder_loss
+from clickstream.model.seq2seq import EncoderDecoder, det_loss
 import pytest
 import random
 import torch
@@ -49,7 +49,7 @@ def test_encoder_decoder_flow(dataset, language):
     # assert h.shape[1:] == (batch_size, latent_size)
 
     # Loss should be non zero
-    loss = decoder_loss(m, padded)
+    loss = det_loss(m, padded)
     assert loss > 0
 
     # Only the last row has a v
