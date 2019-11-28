@@ -14,7 +14,7 @@ class EncoderDecoder(nn.Module):
         bidirectional=True,
         rnn_layers=1,
         custom_embeddings=None,
-        rnn_type='gru'
+        rnn_type="gru",
     ):
         """
         Seq2Seq encoder decoder model.
@@ -51,7 +51,7 @@ class EncoderDecoder(nn.Module):
             self.emb = nn.Embedding(*custom_embeddings.shape, _weight=custom_embeddings)
             self.emb.weight.requires_grad = False
 
-        rnn = nn.GRU if rnn_type == 'gru' else nn.LSTM
+        rnn = nn.GRU if rnn_type == "gru" else nn.LSTM
 
         self.vocabulary_size = vocabulary_size
         self.rnn_enc = rnn(
@@ -72,6 +72,17 @@ class EncoderDecoder(nn.Module):
             nn.Linear(self.linear_in, vocabulary_size), nn.LogSoftmax(1)
         )
 
+    def apply_emb(self, x):
+        if isinstance(x, torch.nn.utils.rnn.PackedSequence):
+            padded, lengths = torch.nn.utils.rnn.pad_packed_sequence(x, padding_value=0)
+            emb = self.emb(padded)
+            emb = torch.nn.utils.rnn.pack_padded_sequence(
+                emb, lengths, enforce_sorted=False
+            )
+        else:
+            emb = self.emb(x).reshape(len(x), 1, -1)
+        return emb
+
     def encode(self, x):
         """
 
@@ -86,14 +97,7 @@ class EncoderDecoder(nn.Module):
             Last hidden state
             shape: (batch, input_size)
         """
-        if isinstance(x, torch.nn.utils.rnn.PackedSequence):
-            padded, lengths = torch.nn.utils.rnn.pad_packed_sequence(x, padding_value=0)
-            emb = self.emb(padded)
-            emb = torch.nn.utils.rnn.pack_padded_sequence(
-                emb, lengths, enforce_sorted=False
-            )
-        else:
-            emb = self.emb(x).reshape(len(x), 1, -1)
+        emb = self.apply_emb(x)
         out, h = self.rnn_enc(emb)
 
         return h
