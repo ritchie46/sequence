@@ -1,6 +1,6 @@
 from itertools import permutations
 from clickstream.data.utils import Language, Dataset
-from clickstream.seq2seq import EncoderDecoder, decoder_loss
+from clickstream.model.seq2seq import EncoderDecoder, decoder_loss
 import pytest
 import random
 import torch

@@ -1,5 +1,5 @@
-from clickstream.seq2seq import decoder_loss, decoder_loss_batched
 import logging
+from clickstream.model.seq2seq import decoder_loss, decoder_loss_batched
 
 logger = logging.getLogger(__name__)
 

@@ -1,7 +1,7 @@
 import torch
 import numpy as np
-from clickstream.seq2seq import run_decoder, EncoderDecoder
-from clickstream.train import run_epoch
+from clickstream.model.seq2seq import run_decoder, EncoderDecoder
+from clickstream.train.ae import run_epoch
 from clickstream.test.test_ import dataset, language, paths, words
 
 
