@@ -5,12 +5,12 @@ import dask.array as da
 
 class Language:
     def __init__(self, words):
-        self.w2i = {"EOS": 0, "SOS": 1}
+        self.w2i = {"EOS": 0, "SOS": 1, "UNKNOWN": 2}
         self.register(words)
 
     def register(self, words):
         for i in range(len(words)):
-            self.w2i[words[i]] = i + 2
+            self.w2i[words[i]] = i + 3
 
     def register_single_word(self, word):
         self.w2i[word] = len(self.w2i)

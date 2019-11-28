@@ -17,7 +17,7 @@ class EncoderDecoder(nn.Module):
         rnn_type='gru'
     ):
         """
-        Seq2Seq econder decoder model.
+        Seq2Seq encoder decoder model.
 
         Parameters
         ----------
@@ -38,9 +38,10 @@ class EncoderDecoder(nn.Module):
         """
         super().__init__()
         if bidirectional:
-            linear_in = latent_size * 2
+            self.linear_in = latent_size * 2
         else:
-            linear_in = latent_size
+            self.linear_in = latent_size
+        self.linear_in *= rnn_layers
 
         if custom_embeddings is None:
             self.emb = nn.Embedding(vocabulary_size, embedding_dim)
@@ -68,7 +69,7 @@ class EncoderDecoder(nn.Module):
             num_layers=rnn_layers,
         )
         self.decoder_out = nn.Sequential(
-            nn.Linear(linear_in, vocabulary_size), nn.LogSoftmax(1)
+            nn.Linear(self.linear_in, vocabulary_size), nn.LogSoftmax(1)
         )
 
     def encode(self, x):
@@ -101,8 +102,11 @@ class EncoderDecoder(nn.Module):
         """
         word : tensor
             shape: (batch)
-        h : tensor
-            shape: (num_layers * num_directions, seq_len, batch, feat)
+        h : Union[tensor, tuple]
+            Tensor:
+                shape: (num_layers * num_directions, batch, feat)
+            Tuple: (h, c)
+                Both have the same shape as h.
         """
         if isinstance(h, tuple):
             batch_size = h[0].shape[1]
@@ -112,7 +116,8 @@ class EncoderDecoder(nn.Module):
             device = h.device
         if word is None:
             # (seq_len, batch)
-            word = torch.ones(1, batch_size, device=device, dtype=torch.long)
+            # UNKNOWN word
+            word = torch.ones(1, batch_size, device=device, dtype=torch.long) * 2
         else:
             word = word.unsqueeze(0)
 
