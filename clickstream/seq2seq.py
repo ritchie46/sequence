@@ -13,7 +13,8 @@ class EncoderDecoder(nn.Module):
         latent_size=20,
         bidirectional=True,
         rnn_layers=1,
-        custom_embeddings=None
+        custom_embeddings=None,
+        rnn_type='gru'
     ):
         """
         Seq2Seq econder decoder model.
@@ -32,6 +33,8 @@ class EncoderDecoder(nn.Module):
             Number of RNN layers.
         custom_embeddings : torch.tensor
             Custom word embeddings, such as GLOVE or Word2Vec.
+        rnn_type : str
+            'gru' or 'lstm'
         """
         super().__init__()
         if bidirectional:
@@ -47,8 +50,10 @@ class EncoderDecoder(nn.Module):
             self.emb = nn.Embedding(*custom_embeddings.shape, _weight=custom_embeddings)
             self.emb.weight.requires_grad = False
 
+        rnn = nn.GRU if rnn_type == 'gru' else nn.LSTM
+
         self.vocabulary_size = vocabulary_size
-        self.rnn_enc = nn.GRU(
+        self.rnn_enc = rnn(
             embedding_dim,
             latent_size,
             bidirectional=bidirectional,
@@ -56,7 +61,7 @@ class EncoderDecoder(nn.Module):
         )
 
         # decoder
-        self.rnn_dec = nn.GRU(
+        self.rnn_dec = rnn(
             embedding_dim,
             latent_size,
             bidirectional=bidirectional,

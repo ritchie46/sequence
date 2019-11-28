@@ -102,3 +102,9 @@ def test_custom_embedding_initialization():
     emb = m.emb(torch.tensor([1], dtype=torch.long))
     np.testing.assert_allclose(emb.numpy(), np.ones((1, 3)))
 
+
+def test_rnn_init():
+    m = EncoderDecoder(vocabulary_size=1, rnn_type='lstm')
+    assert isinstance(m.rnn_enc, torch.nn.LSTM)
+    m = EncoderDecoder(vocabulary_size=1, rnn_type='gru')
+    assert isinstance(m.rnn_enc, torch.nn.GRU)
