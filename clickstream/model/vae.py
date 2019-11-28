@@ -1,6 +1,5 @@
 import torch
 from torch import nn
-from clickstream.utils import get_batch_size
 import torch.nn.functional as F
 from clickstream.model.seq2seq import EncoderDecoder
 import numpy as np

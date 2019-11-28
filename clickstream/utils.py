@@ -1,4 +1,5 @@
 import torch
+import numpy as np
 
 
 def masked_flip(padded_sequence, sequence_lengths):
@@ -37,3 +38,13 @@ def get_batch_size(h):
     if isinstance(h, tuple):
         return h[0].shape[1]
     return h.shape[1]
+
+
+def anneal(i, goal, f='linear'):
+    if f == 'linear':
+        return min(1., goal / i)
+    else:
+        # logistic
+        a = goal * 0.7
+        return 1 / (1 + np.exp(-5 / a * (i - 700)))
+
