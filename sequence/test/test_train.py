@@ -1,8 +1,8 @@
 import torch
 import numpy as np
-from clickstream.model.seq2seq import run_decoder, EncoderDecoder
-from clickstream.train.ae import run_epoch
-from clickstream.test.test_ae import dataset, language, paths, words
+from sequence.model.seq2seq import run_decoder, EncoderDecoder
+from sequence.train.ae import run_epoch
+from sequence.test.test_ae import dataset, language, paths, words
 
 
 def test_non_batched(dataset, language):

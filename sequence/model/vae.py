@@ -1,7 +1,7 @@
 import torch
 from torch import nn
 import torch.nn.functional as F
-from clickstream.model.seq2seq import EncoderDecoder
+from sequence.model.seq2seq import EncoderDecoder
 import numpy as np
 
 
@@ -79,7 +79,7 @@ class VAE(EncoderDecoder):
         return out
 
 
-def det_elbo(
+def det_neg_elbo(
     model,
     packed_padded,
     word_dropout=1.0,
