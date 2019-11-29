@@ -1,7 +1,7 @@
 import torch
 from torch import nn
 import torch.nn.functional as F
-from clickstream.model.seq2seq import EncoderDecoder
+from sequence.model.seq2seq import EncoderDecoder
 import numpy as np
 
 

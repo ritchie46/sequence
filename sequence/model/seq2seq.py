@@ -2,7 +2,7 @@ from torch import nn
 import numpy as np
 import torch.nn.functional as F
 import torch
-from clickstream.utils import masked_flip, get_batch_size
+from sequence.utils import masked_flip, get_batch_size
 
 
 class EncoderDecoder(nn.Module):
@@ -145,7 +145,7 @@ def det_loss_batched(
 
     Parameters
     ----------
-    model : clickstream.model.seq2seq.EncoderDecoder
+    model : sequence.model.seq2seq.EncoderDecoder
     packed_padded : torch.nn.utils.rnn.PackedSequence
     teach_forcing_p : float
     nullify_rnn_input : bool
@@ -197,7 +197,7 @@ def det_loss(m, padded):
 
     Parameters
     ----------
-    m : clickstream.model.seq2seq.EncoderDecoder
+    m : sequence.model.seq2seq.EncoderDecoder
     padded : torch.tensor
         -1 padded sequences
 

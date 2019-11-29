@@ -1,5 +1,5 @@
 import logging
-from clickstream.model.seq2seq import det_loss, det_loss_batched
+from sequence.model.seq2seq import det_loss, det_loss_batched
 
 logger = logging.getLogger(__name__)
 
@@ -25,7 +25,7 @@ def run_epoch(
     epoch : int
     model : torch.nn.Module
     optim : torch.Optimizer
-    dataset : clickstream.data.utils.Dataset
+    dataset : sequence.data.utils.Dataset
     batch_size : int
     teach_forcing_p : float
     device : str

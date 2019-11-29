@@ -1,5 +1,5 @@
-from clickstream.model.vae import VAE, det_elbo
-from clickstream.test.test_ae import language, words, dataset, paths
+from sequence.model.vae import VAE, det_elbo
+from sequence.test.test_ae import language, words, dataset, paths
 
 
 def test_flow(language, dataset):
