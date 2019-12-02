@@ -40,11 +40,8 @@ def get_batch_size(h):
     return h.shape[1]
 
 
-def anneal(i, goal, f='linear'):
-    if f == 'linear':
-        return min(1., goal / i)
+def anneal(i, goal, f="linear", a=2.):
+    if f == "linear":
+        return min(1.0, i / goal)
     else:
-        # logistic
-        a = goal * 0.7
-        return 1 / (1 + np.exp(-5 / a * (i - 700)))
-
+        return min(1.0, (i / goal)**a)

@@ -1,7 +1,10 @@
 import torch
+from functools import partial
 import numpy as np
 from sequence.model.seq2seq import run_decoder, EncoderDecoder
+from sequence.model.vae import VAE
 from sequence.train.ae import run_epoch
+from sequence.utils import anneal
 from sequence.test.test_ae import dataset, language, paths, words
 
 
@@ -77,3 +80,51 @@ def test_batched(dataset, language):
 
     for i in range(padded.shape[1]):
         print(padded[: lengths[i], i].cpu(), out[i, : lengths[i]].cpu())
+
+
+def test_vae(dataset, language):
+    from sequence.train.vae import run_epoch
+    from sequence.model.vae import run_decoder
+
+    torch.manual_seed(0)
+    np.random.seed(0)
+
+    latent_size = 32
+    batch_size = 64
+    word_dropout = 1.
+    m = VAE(
+        vocabulary_size=language.vocabulary_size,
+        embedding_dim=8,
+        hidden_size=16,
+        latent_size=latent_size,
+        bidirectional=False,
+    )
+    device = "cuda"
+    if device == "cuda":
+        m.cuda()
+    optim = torch.optim.Adam(m.parameters(), lr=0.001)
+    anneal_f = partial(anneal, goal=1000 / batch_size, f="other")
+
+    for e in range(200):
+        run_epoch(
+            e,
+            m,
+            optim,
+            dataset,
+            batch_size,
+            word_dropout=word_dropout,
+            device=device,
+            anneal_f=anneal_f,
+        )
+
+    packed_padded, padded = dataset.get_batch(0, 25, device=device)
+    h, z, mu, log_var = m.encode(packed_padded)
+
+    out, target = run_decoder(m, packed_padded, word_dropout, h)
+    out = out.argmax(-1)
+
+    for i in range(25):
+        t = target[i, :]
+        mask = t >= 0
+        print(t[mask], out[i, :][mask])
+

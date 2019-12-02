@@ -79,15 +79,7 @@ class VAE(EncoderDecoder):
         return out
 
 
-def det_neg_elbo(
-    model,
-    packed_padded,
-    word_dropout=1.0,
-    test_loss=False,
-):
-    # https://arxiv.org/pdf/1511.06349.pdf
-    h, z, mu, log_var = model.encode(packed_padded)
-
+def run_decoder(model, packed_padded, word_dropout, h):
     padded, lengths = torch.nn.utils.rnn.pad_packed_sequence(
         packed_padded, padding_value=-1
     )
@@ -110,6 +102,19 @@ def det_neg_elbo(
     )
     out = model.decode(packed_padded_decoder, h)
     target = padded.T
+
+    return out, target
+
+
+def det_neg_elbo(
+    model,
+    packed_padded,
+    word_dropout=1.0,
+    test_loss=False,
+):
+    # https://arxiv.org/pdf/1511.06349.pdf
+    h, z, mu, log_var = model.encode(packed_padded)
+    out, target = run_decoder(model, packed_padded, word_dropout, h)
 
     nll = F.nll_loss(
         out.reshape(-1, out.shape[-1]),

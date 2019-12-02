@@ -1,6 +1,6 @@
 import logging
 from sequence.model.vae import det_neg_elbo
-from sequence.utils import anneal
+import torch
 
 logger = logging.getLogger(__name__)
 
@@ -16,6 +16,7 @@ def run_epoch(
     tensorboard_writer=None,
     global_step=0,
     anneal_f=lambda x: 1,
+    n_batches=None
 ):
     """
     Train one epoch.
@@ -34,7 +35,8 @@ def run_epoch(
     model.train()
     n_total = len(dataset)
     dataset.shuffle()
-    n_batches = n_total // batch_size
+    if n_batches is None:
+        n_batches = n_total // batch_size
 
     c = 0
     for i in range(n_batches):
@@ -44,23 +46,32 @@ def run_epoch(
         i = i * batch_size
 
         packed_padded, padded = dataset.get_batch(i, i + batch_size, device=device)
-        nll, kl = det_neg_elbo(model, packed_padded, word_dropout)
-        anneal_factor = anneal_f(global_step)
-        loss = nll + kl * anneal_factor
-
-        logger.debug(
-            "{}/{}\t{}%\tLoss: {:.4f}".format(
-                c, n_batches, int(c / n_batches * 100), loss.item()
-            )
+        _, lengths = torch.nn.utils.rnn.pad_packed_sequence(
+            packed_padded, padding_value=-1
         )
 
+        nll, kl = det_neg_elbo(model, packed_padded, word_dropout)
+        anneal_factor = anneal_f(global_step)
+        # Scale by lengths
+        loss = (nll + kl * anneal_factor) / lengths.sum()
         loss.backward()
         optim.step()
 
-        if tensorboard_writer is not None:
-            tensorboard_writer.add_scalars(
-                "Loss", {"NEG. ELBO": loss.item(), "NLL": nll.item(), "KL": kl.item()}
+        if global_step % 10 == 0:
+            logger.debug(
+                "{}/{}\t{}%\tLoss: {:.4f}".format(
+                    c, n_batches, int(c / n_batches * 100), loss.item()
+                )
             )
-            tensorboard_writer.add_scalar("Anneal factor", anneal_factor)
+
+            if tensorboard_writer is not None:
+                tensorboard_writer.add_scalar("NEG_ELBO", loss.item(), global_step)
+                tensorboard_writer.add_scalars(
+                    "ELBO_PARTS",
+                    {"NLL": nll.item(), "KL": kl.item()},
+                    global_step,
+                )
+                tensorboard_writer.add_scalar("Anneal_factor", anneal_factor, global_step)
 
     logger.debug("Epoch: {}\tLoss{:.4f}".format(epoch, loss.item()))
+    return global_step
