@@ -1,6 +1,7 @@
 import numpy as np
 import torch
 import dask.array as da
+from torch.utils.data import Dataset as ds
 
 
 class Language:
@@ -24,9 +25,9 @@ class Language:
         return len(self.w2i)
 
 
-class Dataset:
+class Dataset(ds):
     def __init__(
-        self, sentences, language, skip=(), chunk_size=int(1e4), max_len=None, min_len=1
+        self, sentences, language, skip=(), chunk_size=int(1e4), max_len=None, min_len=1, device='cpu'
     ):
         self.skip = set(skip)
         self.data = np.array([[]])
@@ -37,6 +38,7 @@ class Dataset:
         self.idx = None
         self.language = language
         self.transform_data(sentences)
+        self.device = device
 
     def transform_sentence(self, s):
         """
@@ -124,7 +126,18 @@ class Dataset:
 
         """
         idx = self.idx[start:end]
+        return self.__getitem__(idx, device)
+
+    def __len__(self):
+        return len(self.data)
+
+    def __getitem__(self, idx, device=None):
+        if isinstance(idx, int):
+            idx = [idx]
         x = self.data[idx].compute()
+
+        if device is None:
+            device = self.device
 
         idx_cond = np.argwhere(x == 0)
         lengths = idx_cond[np.unique(idx_cond[:, 0], return_index=True)[1]][:, 1] + 1
@@ -136,6 +149,3 @@ class Dataset:
             ),
             padded,
         )
-
-    def __len__(self):
-        return len(self.data)

@@ -1,34 +1,9 @@
-from itertools import permutations
-from sequence.data.utils import Language, Dataset
+from sequence.data.utils import Dataset
 from sequence.model.seq2seq import EncoderDecoder, det_loss
-import pytest
-import random
 import torch
 import numpy as np
 from sequence import utils
-
-
-@pytest.fixture(scope="module")
-def words():
-    return list("ABCDEFGH")
-
-
-@pytest.fixture(scope="module")
-def paths(words):
-    # Create random sequences with random length
-    random.seed(1)
-    perm = permutations("".join(words))
-    return [next(perm)[: random.choice(range(1, 9))] for _ in range(2000)]
-
-
-@pytest.fixture(scope="module")
-def language(words):
-    return Language(words)
-
-
-@pytest.fixture(scope="module")
-def dataset(paths, language):
-    return Dataset(paths, language)
+from sequence.test import language, words, dataset, paths
 
 
 def test_encoder_decoder_flow(dataset, language):

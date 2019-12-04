@@ -1,5 +1,5 @@
 from sequence.model.vae import VAE, det_neg_elbo
-from sequence.test.test_ae import language, words, dataset, paths
+from sequence.test import language, words, dataset, paths
 
 
 def test_flow(language, dataset):
