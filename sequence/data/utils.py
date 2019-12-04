@@ -25,10 +25,13 @@ class Language:
 
 
 class Dataset:
-    def __init__(self, sentences, language, skip=(), chunk_size=int(1e4)):
+    def __init__(
+        self, sentences, language, skip=(), chunk_size=int(1e4), max_len=None, min_len=1
+    ):
         self.skip = set(skip)
         self.data = np.array([[]])
-        self.max_len = None
+        self.max_len = max_len
+        self.min_len = min_len
         self.chunk_size = chunk_size
         # used for shuffling
         self.idx = None
@@ -52,7 +55,7 @@ class Dataset:
         # All the sentences are -1 padded
         idx = np.ones(self.max_len + 1) * -1
 
-        if len(s) > self.max_len:
+        if len(s) > self.max_len or len(s) < self.min_len:
             # will be removed jit
             return idx
         for i, w in enumerate(s):
