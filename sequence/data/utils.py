@@ -25,7 +25,7 @@ class Language:
 
 
 class Dataset:
-    def __init__(self, paths, language, skip=(), chunk_size=int(1e4)):
+    def __init__(self, sentences, language, skip=(), chunk_size=int(1e4)):
         self.skip = set(skip)
         self.data = np.array([[]])
         self.max_len = None
@@ -33,10 +33,28 @@ class Dataset:
         # used for shuffling
         self.idx = None
         self.language = language
-        self.transform_data(paths)
+        self.transform_data(sentences)
 
     def transform_sentence(self, s):
+        """
+        Transform sentence of string to integers.
+
+        Parameters
+        ----------
+        s : list[str]
+            A sequence of any length.
+
+        Returns
+        -------
+        s : np.array[int]
+            A -1 padded sequence of shape (self.max_len, )
+        """
+        # All the sentences are -1 padded
         idx = np.ones(self.max_len + 1) * -1
+
+        if len(s) > self.max_len:
+            # will be removed jit
+            return idx
         for i, w in enumerate(s):
             if w in self.skip:
                 continue
@@ -47,6 +65,17 @@ class Dataset:
         return np.array(idx)
 
     def transform_data(self, paths, max_len=None):
+        """
+        The sentences containing of string values will be
+        transformed to a dask dataframe as integers.
+
+        Parameters
+        ----------
+        paths : list[list[str]]
+            Sentences with a variable length.
+        max_len : int
+            Maximum length to use in the dataset.
+        """
         if max_len is None:
             max_len = max(map(len, paths))
         self.max_len = max_len
@@ -58,9 +87,13 @@ class Dataset:
         ):
             j = min(size, j)
 
+            # Sentences to integers
             a = np.array(list(map(self.transform_sentence, paths[i:j])))
+
+            # Remove empty sequences jit. Because of -1 padding sum == max_len + 1
             mask = np.sum(a, 1) == -(self.max_len + 1)
             a = a[~mask]
+
             self.data = da.concatenate([self.data, a], axis=0)
 
         self.idx = np.arange(len(self.data), dtype=np.int32)
