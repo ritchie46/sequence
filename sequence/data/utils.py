@@ -5,9 +5,10 @@ from torch.utils.data import Dataset as ds
 
 
 class Language:
-    def __init__(self, words):
+    def __init__(self, words=None):
         self.w2i = {"EOS": 0, "SOS": 1, "UNKNOWN": 2}
-        self.register(words)
+        if words is not None:
+            self.register(words)
 
     def register(self, words):
         for i in range(len(words)):
@@ -24,10 +25,23 @@ class Language:
     def vocabulary_size(self):
         return len(self.w2i)
 
+    def __getitem__(self, item):
+        if isinstance(item, int):
+            return self.i2w[item]
+        else:
+            return self.w2i[item]
+
 
 class Dataset(ds):
     def __init__(
-        self, sentences, language, skip=(), chunk_size=int(1e4), max_len=None, min_len=1, device='cpu'
+        self,
+        sentences,
+        language=None,
+        skip=(),
+        chunk_size=int(1e4),
+        max_len=None,
+        min_len=1,
+        device="cpu",
     ):
         self.skip = set(skip)
         self.data = np.array([[]])
@@ -36,7 +50,7 @@ class Dataset(ds):
         self.chunk_size = chunk_size
         # used for shuffling
         self.idx = None
-        self.language = language
+        self.language = Language() if language is None else language
         self.transform_data(sentences)
         self.device = device
 
