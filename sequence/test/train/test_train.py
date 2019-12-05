@@ -6,6 +6,11 @@ from sequence.model.vae import VAE
 from sequence.train.ae import run_epoch
 from sequence.utils import anneal
 from sequence.test.test_ae import dataset, language, paths, words
+try:
+    from apex import amp
+    opt_level = '00' # no mixed precision.
+except ImportError:
+    pass
 
 
 def test_non_batched(dataset, language):
@@ -25,6 +30,8 @@ def test_non_batched(dataset, language):
     if device == "cuda":
         m.cuda()
     optim = torch.optim.Adam(m.parameters(), lr=0.01)
+    if globals().get('amp', False):
+        m, optim = amp.initialize(m, optim, opt_level=opt_level)
     for _ in range(10):
         run_epoch(1, m, optim, dataset, batch_size, device=device, batched=False)
 
@@ -60,6 +67,8 @@ def test_batched(dataset, language):
     if device == "cuda":
         m.cuda()
     optim = torch.optim.Adam(m.parameters(), lr=0.01)
+    if globals().get('amp', False):
+        m, optim = amp.initialize(m, optim, opt_level=opt_level)
     for e in range(10):
         run_epoch(
             e,
@@ -103,9 +112,11 @@ def test_vae(dataset, language):
     if device == "cuda":
         m.cuda()
     optim = torch.optim.Adam(m.parameters(), lr=0.001)
+    if globals().get('amp', False):
+        m, optim = amp.initialize(m, optim, opt_level=opt_level)
     anneal_f = partial(anneal, goal=1000 / batch_size, f="other")
 
-    for e in range(200):
+    for e in range(50):
         run_epoch(
             e,
             m,

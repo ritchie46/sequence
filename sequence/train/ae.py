@@ -1,5 +1,6 @@
 import logging
 from sequence.model.seq2seq import det_loss, det_loss_batched
+from sequence.utils import backward
 
 logger = logging.getLogger(__name__)
 
@@ -66,8 +67,7 @@ def run_epoch(
                     c, n_batches, int(c / n_batches * 100), loss.item()
                 )
             )
-
-        loss.backward()
+        backward(loss, optim)
         optim.step()
 
         if tensorboard_writer is not None:

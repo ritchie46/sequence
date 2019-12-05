@@ -1,6 +1,7 @@
 import logging
 from sequence.model.vae import det_neg_elbo
 import torch
+from sequence.utils import backward
 
 logger = logging.getLogger(__name__)
 
@@ -54,7 +55,7 @@ def run_epoch(
         anneal_factor = anneal_f(global_step)
         # Scale by lengths
         loss = (nll + kl * anneal_factor) / lengths.sum()
-        loss.backward()
+        backward(loss, optim)
         optim.step()
 
         if global_step % 10 == 0:

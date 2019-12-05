@@ -1,5 +1,20 @@
 import torch
-import numpy as np
+from logging import getLogger
+
+logger = getLogger(__name__)
+try:
+    from apex import amp
+    logger.info('Mixed Precision training possible!')
+except ImportError:
+    logger.info('Could not import apex. Mixed Precision training is not possible.')
+
+
+def backward(loss, optim):
+    if globals().get('amp', False):
+        with amp.scale_loss(loss, optim) as scaled_loss:
+            scaled_loss.backward()
+    else:
+        loss.backward()
 
 
 def masked_flip(padded_sequence, sequence_lengths):
