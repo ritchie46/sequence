@@ -59,9 +59,9 @@ def run_epoch(
         optim.step()
 
         if global_step % 10 == 0:
-            logger.debug(
-                "{}/{}\t{}%\tLoss: {:.4f}".format(
-                    c, n_batches, int(c / n_batches * 100), loss.item()
+            logger.info(
+                "{}/{}\t{}%\tLoss: {:.4f}\tAnneal factor: {:.3f}".format(
+                    c, n_batches, int(c / n_batches * 100), loss.item(), anneal_factor
                 )
             )
 

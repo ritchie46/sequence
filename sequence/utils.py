@@ -1,4 +1,5 @@
 import torch
+import os
 from logging import getLogger
 
 logger = getLogger(__name__)
@@ -10,7 +11,7 @@ except ImportError:
 
 
 def backward(loss, optim):
-    if globals().get('amp', False):
+    if os.environ.get("USE_APEX_AMP"):
         with amp.scale_loss(loss, optim) as scaled_loss:
             scaled_loss.backward()
     else:
