@@ -51,7 +51,8 @@ class Dataset(ds):
         # used for shuffling
         self.idx = None
         self.language = Language() if language is None else language
-        self.transform_data(sentences)
+        if sentences is not None:
+            self.transform_data(sentences)
         self.device = device
 
     def transform_sentence(self, s):
@@ -115,12 +116,10 @@ class Dataset(ds):
 
             self.data = da.concatenate([self.data, a], axis=0)
 
-        self.idx = np.arange(len(self.data), dtype=np.int32)
+        self.set_idx()
 
     def shuffle(self):
         np.random.shuffle(self.idx)
-        # used for shuffling
-        self.idx = np.arange(len(self.data))
 
     def get_batch(self, start, end, device="cpu"):
         """
@@ -141,6 +140,9 @@ class Dataset(ds):
         """
         idx = self.idx[start:end]
         return self.__getitem__(idx, device)
+
+    def set_idx(self):
+        self.idx = np.arange(len(self.data), dtype=np.int32)
 
     def __len__(self):
         return len(self.data)
@@ -163,3 +165,33 @@ class Dataset(ds):
             ),
             padded,
         )
+
+    def split(self, fracs, shuffle=True):
+        """
+        Split dataset in [train, test, ..., val] Datasets.
+
+        Parameters
+        ----------
+        fracs : Sequence
+        shuffle : bool
+
+        Returns
+        -------
+        datasets : tuple[Dataset]
+            A new Dataset object for every fraction in fracs
+        """
+        idx = np.arange(len(self.data))
+        dsets = tuple(Dataset(None, language=self.language) for _ in fracs)
+        fracs = np.array([0] + fracs)
+        assert fracs.sum() == 1
+        if shuffle:
+            np.random.shuffle(idx)
+
+        slice_idx = np.cumsum(fracs * len(self.data)).astype(int)
+        slice_idx = [(i, j) for i, j in zip(slice_idx[:-1], slice_idx[1:])]
+
+        for (i, j), ds in zip(slice_idx, dsets):
+            ds.__dict__.update(self.__dict__)
+            ds.data = self.data[i: j]
+            ds.set_idx()
+        return dsets
