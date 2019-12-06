@@ -1,13 +1,15 @@
 import torch
 import os
 from logging import getLogger
+import numpy as np
 
 logger = getLogger(__name__)
 try:
     from apex import amp
-    logger.info('Mixed Precision training possible!')
+
+    logger.info("Mixed Precision training possible!")
 except ImportError:
-    logger.info('Could not import apex. Mixed Precision training is not possible.')
+    logger.info("Could not import apex. Mixed Precision training is not possible.")
 
 
 def backward(loss, optim):
@@ -56,8 +58,25 @@ def get_batch_size(h):
     return h.shape[1]
 
 
-def anneal(i, goal, f="linear", a=2.):
+def anneal(i, goal, f="linear", a=2.0):
     if f == "linear":
         return min(1.0, i / goal)
     else:
-        return min(1.0, (i / goal)**a)
+        return min(1.0, (i / goal) ** a)
+
+
+def annealing_no(start, end, pct):
+    return start
+
+
+def annealing_linear(start, end, pct):
+    return start + pct * (end - start)
+
+
+def annealing_cosine(start, end, pct):
+    cos_out = np.cos(np.pi * pct) + 1
+    return end + (start - end) / 2 * cos_out
+
+
+def annealing_exp(start, end, pct):
+    return start * (end / start) ** pct
