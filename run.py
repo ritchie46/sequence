@@ -1,7 +1,7 @@
 from sequence.model.vae import VAE
 from sequence.data.datasets import brown
 import os
-from sequence.utils import anneal
+from sequence.utils import annealing_exp
 from functools import partial
 from sequence.train.vae import run_epoch
 import logging
@@ -54,7 +54,10 @@ def main(args):
     else:
         writer = None
 
-    anneal_f = partial(anneal, goal=len(dataset) * 3, f="other")
+    def anneal_f(i):
+        pct = i / len(dataset) * args.annealing_epochs / args.batch_size
+        return annealing_exp(0, 1, pct)
+
     os.makedirs(os.path.join(artifact_dir, name), exist_ok=True)
 
     global_step = 0
@@ -82,15 +85,24 @@ if __name__ == "__main__":
     parser.add_argument("--embedding_dim", type=int, default=64)
     parser.add_argument("--hidden_size", type=int, default=64)
     parser.add_argument("--latent_size", type=int, default=100)
-    parser.add_argument("--word_dropout", type=float, default=0.75)
+    parser.add_argument("-d", "--word_dropout", type=float, default=0.75)
     parser.add_argument("--batch_size", type=int, default=32)
     parser.add_argument("--storage_dir", type=str, default="storage")
     parser.add_argument("--tensorboard", type=bool, default=True)
     parser.add_argument("--lr", type=float, default=0.001)
-    parser.add_argument("--epochs", type=int, default=20)
+    parser.add_argument("-e", "--epochs", type=int, default=20)
     parser.add_argument("--min_length", type=int, default=4)
     parser.add_argument("--max_length", type=int, default=30)
     parser.add_argument("--train_percentage", type=float, default=0.9)
+    parser.add_argument(
+        "--annealing_epochs",
+        type=float,
+        default=3.0,
+        help="In how many epochs the annealling should be 1.",
+    )
+    parser.add_argument(
+        "--save_every_n", type=int, default=None, help="Save every n batches"
+    )
 
     args = parser.parse_args()
     main(args)
