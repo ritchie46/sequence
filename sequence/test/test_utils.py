@@ -13,7 +13,7 @@ def test_dataset_torch_compatible(dataset):
 
 def test_brown_dataset():
     ds, lang = brown()
-    assert lang[234] == "burden"
+    assert lang[234] == "awarding"
 
 
 def test_dataset_split(dataset):

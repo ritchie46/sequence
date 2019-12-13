@@ -2,24 +2,42 @@ import numpy as np
 import torch
 import dask.array as da
 from torch.utils.data import Dataset as ds
+from collections import defaultdict
+import string
 
 
 class Language:
-    def __init__(self, words=None):
+    def __init__(self, words=None, lower=True, remove_punctuation=True):
+        self.lower = lower
+        self.remove_punctuation = remove_punctuation
+        if remove_punctuation:
+            self.translation_table = str.maketrans("", "", string.punctuation)
+        else:
+            self.remove_punctuation = None
         self.w2i = {"EOS": 0, "SOS": 1, "UNKNOWN": 2}
         if words is not None:
             self.register(words)
 
+    def clean(self, word):
+        if self.lower:
+            word = word.lower()
+        if self.remove_punctuation:
+            # Make a translation table when given 3 args.
+            # All punctuation will be mapped to None
+            word.translate(self.translation_table)
+        return word
+
     def register(self, words):
-        for i in range(len(words)):
-            self.w2i[words[i]] = i + 3
+        [self.register_single_word(w) for w in words]
 
     def register_single_word(self, word):
-        self.w2i[word] = len(self.w2i)
+        self.w2i[self.clean(word)] = len(self.w2i)
 
     @property
     def i2w(self):
-        return {v: k for k, v in self.w2i.items()}
+        d = defaultdict(lambda: None)
+        d.update({v: k for k, v in self.w2i.items()})
+        return d
 
     @property
     def vocabulary_size(self):
@@ -30,6 +48,12 @@ class Language:
             return self.i2w[item]
         else:
             return self.w2i[item]
+
+    def __contains__(self, item):
+        if isinstance(item, str):
+            return self.clean(item) in self.w2i
+        else:
+            return item in self.i2w
 
 
 class Dataset(ds):
@@ -78,6 +102,8 @@ class Dataset(ds):
         for i, w in enumerate(s):
             if w in self.skip:
                 continue
+
+            w = self.language.clean(w)
             if w not in self.language.w2i:
                 self.language.register_single_word(w)
             idx[i] = self.language.w2i[w]
@@ -192,6 +218,6 @@ class Dataset(ds):
 
         for (i, j), ds in zip(slice_idx, dsets):
             ds.__dict__.update(self.__dict__)
-            ds.data = self.data[i: j]
+            ds.data = self.data[i:j]
             ds.set_idx()
         return dsets

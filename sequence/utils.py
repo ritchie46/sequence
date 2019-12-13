@@ -83,3 +83,9 @@ def annealing_cosine(start, end, pct):
 def annealing_exp(start, end, pct):
     v = pct * (end - start) + start
     return min(1.0, (v / end) ** 2)
+
+
+def translate_sentence_i2w(language, sentence):
+    # evaluate property only once
+    d = language.i2w
+    return [d[int(j)] for j in sentence]
