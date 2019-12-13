@@ -79,4 +79,5 @@ def annealing_cosine(start, end, pct):
 
 
 def annealing_exp(start, end, pct):
-    return start * (end / start) ** pct
+    v = pct * (end - start) + start
+    return min(1.0, (v / end) ** 2)

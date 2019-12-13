@@ -55,7 +55,7 @@ def main(args):
         writer = None
 
     def anneal_f(i):
-        pct = i / len(dataset) * args.annealing_epochs / args.batch_size
+        pct = i / (len(dataset) * args.annealing_epochs) * args.batch_size
         return annealing_exp(0, 1, pct)
 
     os.makedirs(os.path.join(artifact_dir, name), exist_ok=True)
