@@ -65,6 +65,8 @@ def anneal(i, goal, f="linear", a=2.0):
         return min(1.0, (i / goal) ** a)
 
 
+# Annealing functions courtesy of fast ai
+# https://github.com/fastai/fastai/blob/cc5abce71be67b2873003568526208f39cbc616b/fastai/callback.py#L355
 def annealing_no(start, end, pct):
     return start
 

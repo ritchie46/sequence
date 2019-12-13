@@ -17,7 +17,8 @@ def run_epoch(
     tensorboard_writer=None,
     global_step=0,
     anneal_f=lambda x: 1,
-    n_batches=None
+    n_batches=None,
+    callbacks=[],
 ):
     """
     Train one epoch.
@@ -29,9 +30,19 @@ def run_epoch(
     optim : torch.Optimizer
     dataset : sequence.data.utils.Dataset
     batch_size : int
+    word_dropout : float
+        Probability of dropping out correct word in decoder.
     device : str
         "cpu" or "cuda"
     tensorboard_writer : SummaryWriter
+    global_step : int
+        Step counter
+    anneal_f : func(global_step)
+        Annealing function.
+    n_batches : int
+        How many batches to run before epoch is regarded complete.
+        Default = N / batch_size
+    callbacks : list[function[**kwargs]]
     """
     model.train()
     n_total = len(dataset)
@@ -68,11 +79,13 @@ def run_epoch(
             if tensorboard_writer is not None:
                 tensorboard_writer.add_scalar("NEG_ELBO", loss.item(), global_step)
                 tensorboard_writer.add_scalars(
-                    "ELBO_PARTS",
-                    {"NLL": nll.item(), "KL": kl.item()},
-                    global_step,
+                    "ELBO_PARTS", {"NLL": nll.item(), "KL": kl.item()}, global_step,
                 )
-                tensorboard_writer.add_scalar("Anneal_factor", anneal_factor, global_step)
+                tensorboard_writer.add_scalar(
+                    "Anneal_factor", anneal_factor, global_step
+                )
+
+        [f(global_step=global_step, loss=loss, epoch=epoch, model=model) for f in callbacks]
 
     logger.debug("Epoch: {}\tLoss{:.4f}".format(epoch, loss.item()))
     return global_step

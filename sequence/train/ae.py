@@ -17,6 +17,8 @@ def run_epoch(
     batched=True,
     reverse_target=False,
     tensorboard_writer=None,
+    global_step=0,
+    callbacks=[],
 ):
     """
     Train one epoch.
@@ -36,6 +38,9 @@ def run_epoch(
     reverse_target : bool
         Predict the inverted sentence. Leads to cleaner representations.
     tensorboard_writer : SummaryWriter
+    global_step : int
+        Step counter
+    callbacks : list[function[**kwargs]]
     """
     model.train()
     n_total = len(dataset)
@@ -72,5 +77,7 @@ def run_epoch(
 
         if tensorboard_writer is not None:
             tensorboard_writer.add_scalar("Loss", loss.item())
+
+        [f(global_step=global_step, loss=loss, epoch=epoch) for f in callbacks]
 
     logger.debug("Epoch: {}\tLoss{:.4f}".format(epoch, loss.item()))
