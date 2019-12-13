@@ -69,7 +69,7 @@ class EncoderDecoder(nn.Module):
             num_layers=rnn_layers,
         )
         self.decoder_out = nn.Sequential(
-            nn.Linear(self.linear_in, vocabulary_size), nn.LogSoftmax(1)
+            nn.Linear(self.linear_in, vocabulary_size), nn.LogSoftmax(-1)
         )
 
     def apply_emb(self, x):
