@@ -2,7 +2,7 @@ from sequence.model.vae import VAE
 from sequence.data.datasets import brown
 import os
 from sequence.utils import annealing_exp
-from functools import partial
+from sequence import callbacks
 from sequence.train.vae import run_epoch
 import logging
 from tensorboardX import SummaryWriter
@@ -59,6 +59,8 @@ def main(args):
         return annealing_exp(0, 1, pct)
 
     os.makedirs(os.path.join(artifact_dir, name), exist_ok=True)
+    if args.save_every_n is not None:
+        callbacks.save_every_n_steps(n=args.save_every_n, mr=mr, dump_dir=artifact_dir)
 
     global_step = 0
     for e in range(args.epochs):

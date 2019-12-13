@@ -85,7 +85,15 @@ def run_epoch(
                     "Anneal_factor", anneal_factor, global_step
                 )
 
-        [f(global_step=global_step, loss=loss, epoch=epoch, model=model) for f in callbacks]
+        [
+            f(
+                global_step=global_step,
+                loss=loss,
+                epoch=epoch,
+                model=model,
+            )
+            for f in callbacks
+        ]
 
     logger.debug("Epoch: {}\tLoss{:.4f}".format(epoch, loss.item()))
     return global_step
