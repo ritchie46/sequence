@@ -80,6 +80,21 @@ class VAE(EncoderDecoder):
 
 
 def run_decoder(model, packed_padded, word_dropout, h):
+    """
+
+    Parameters
+    ----------
+    model : sequence.model.vae.VAE
+    packed_padded : torch.nn.utils.rnn.pack_padded_sequence
+    word_dropout : float
+        Probability of input word being removed.
+    h : torch.tensor
+        Hidden state
+
+    Returns
+    -------
+    (out, target) : tuple[tensor, tensor]
+    """
     padded, lengths = torch.nn.utils.rnn.pad_packed_sequence(
         packed_padded, padding_value=-1
     )
@@ -112,6 +127,23 @@ def det_neg_elbo(
     word_dropout=1.0,
     test_loss=False,
 ):
+    """
+    Negative ELBO.
+
+    Parameters
+    ----------
+    model : sequence.model.vae.VAE
+    packed_padded : torch.nn.utils.rnn.pack_padded_sequence
+    word_dropout : float
+        Probability of input word being removed.
+    test_loss : bool
+        Validate that the batched loss is equal to non-batched.
+        Should only be used in testing.
+
+    Returns
+    -------
+    (nll, kl) : tuple[float, float]
+    """
     # https://arxiv.org/pdf/1511.06349.pdf
     h, z, mu, log_var = model.encode(packed_padded)
     out, target = run_decoder(model, packed_padded, word_dropout, h)
