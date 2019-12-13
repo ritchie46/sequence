@@ -41,6 +41,9 @@ def main(args):
         device = "cuda"
         logger.info("CUDA available.")
         mr.model_.cuda()
+    else:
+        logger.info("Running on CPU.")
+        device = "cpu"
 
     optim = torch.optim.Adam(mr.model_.parameters(), lr=args.lr)
     os.makedirs(args.storage_dir, exist_ok=True)
