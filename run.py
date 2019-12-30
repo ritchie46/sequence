@@ -89,7 +89,7 @@ def main(args):
             anneal_f=anneal_f,
         )
 
-        with open(os.path.join(artifact_dir, name + f"-{e}.pkl"), "wb") as f:
+        with open(os.path.join(artifact_dir, name + f"/{e}.pkl"), "wb") as f:
             mr.dump(f)
 
 
