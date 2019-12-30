@@ -80,6 +80,10 @@ def annealing_cosine(start, end, pct):
     return end + (start - end) / 2 * cos_out
 
 
+def annealing_sigmoid(start, end, pct):
+    return min(annealing_cosine(start, end, pct), 1.0)
+
+
 def annealing_exp(start, end, pct):
     v = pct * (end - start) + start
     return min(1.0, (v / end) ** 2)

@@ -3,7 +3,7 @@ import pickle
 from sequence.model.vae import VAE
 from sequence.data.datasets import brown
 import os
-from sequence.utils import annealing_exp
+from sequence.utils import annealing_sigmoid
 from sequence import callbacks
 from sequence.train.vae import run_epoch
 import logging
@@ -46,7 +46,7 @@ def main(args):
         ),
     )
 
-    if torch.cuda.is_available():
+    if torch.cuda.is_available() and not args.force_cpu:
         device = "cuda"
         logger.info("CUDA available.")
         mr.model_.cuda()
@@ -68,7 +68,7 @@ def main(args):
 
     def anneal_f(i):
         pct = i / (len(dataset) * args.annealing_epochs) * args.batch_size
-        return annealing_exp(0, 1, pct)
+        return annealing_sigmoid(0, 1, pct)
 
     os.makedirs(os.path.join(artifact_dir, name), exist_ok=True)
     if args.save_every_n is not None:
@@ -123,6 +123,7 @@ if __name__ == "__main__":
         default=None,
         help="Pickled dataset file. If none given, NLTK BROWN dataset will be used",
     )
+    parser.add_argument("--force_cpu", type=bool, default=False)
 
     args = parser.parse_args()
     main(args)
