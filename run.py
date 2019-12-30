@@ -103,7 +103,7 @@ if __name__ == "__main__":
         "--annealing_epochs",
         type=float,
         default=3.0,
-        help="In how many epochs the annealling should be 1.",
+        help="In how many epochs the annealing should be 1.",
     )
     parser.add_argument(
         "--save_every_n", type=int, default=None, help="Save every n batches"
