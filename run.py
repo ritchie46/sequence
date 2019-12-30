@@ -1,3 +1,5 @@
+import pickle
+
 from sequence.model.vae import VAE
 from sequence.data.datasets import brown
 import os
@@ -16,7 +18,14 @@ logger = logging.getLogger(__name__)
 
 
 def main(args):
-    dataset, language = brown()
+    fn = args.dataset
+    if fn is None:
+        logger.info("Using NLTK brown dataset")
+        dataset, language = brown()
+    else:
+        logger.info(f"Using dataset from {fn}")
+        with open(fn, "rb") as f:
+            dataset = pickle.load(f)
     dataset, _ = dataset.split(
         [args.train_percentage, 1 - args.train_percentage], shuffle=False
     )
@@ -107,6 +116,12 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "--save_every_n", type=int, default=None, help="Save every n batches"
+    )
+    parser.add_argument(
+        "--dataset",
+        type=str,
+        default=None,
+        help="Pickled dataset file. If none given, NLTK BROWN dataset will be used",
     )
 
     args = parser.parse_args()
