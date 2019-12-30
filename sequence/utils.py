@@ -81,7 +81,7 @@ def annealing_cosine(start, end, pct):
 
 
 def annealing_sigmoid(start, end, pct):
-    return min(annealing_cosine(start, end, pct), 1.0)
+    return annealing_cosine(start, end, min(1.0, pct))
 
 
 def annealing_exp(start, end, pct):

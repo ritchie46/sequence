@@ -1,7 +1,7 @@
 import pickle
 
 from sequence.model.vae import VAE
-from sequence.data.datasets import brown
+from sequence.data.datasets import treebank
 import os
 from sequence.utils import annealing_sigmoid
 from sequence import callbacks
@@ -20,8 +20,8 @@ logger = logging.getLogger(__name__)
 def main(args):
     fn = args.dataset
     if fn is None:
-        logger.info("Using NLTK brown dataset")
-        dataset, language = brown()
+        logger.info("Using NLTK treebank dataset")
+        dataset, language = treebank()
     else:
         logger.info(f"Using dataset from {fn}")
         with open(fn, "rb") as f:

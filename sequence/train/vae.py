@@ -71,8 +71,8 @@ def run_epoch(
 
         if global_step % 10 == 0:
             logger.info(
-                "{}/{}\t{}%\tLoss: {:.4f}\tAnneal factor: {:.3f}".format(
-                    c, n_batches, int(c / n_batches * 100), loss.item(), anneal_factor
+                "{}/{}\t{}%\tEpoch: {} Loss: {:.4f}\tAnneal factor: {:.3f}".format(
+                    c, n_batches, int(c / n_batches * 100), epoch, loss.item(), anneal_factor
                 )
             )
 
