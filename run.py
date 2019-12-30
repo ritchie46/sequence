@@ -54,7 +54,9 @@ def main(args):
         logger.info("Running on CPU.")
         device = "cpu"
 
-    optim = torch.optim.Adam(mr.model_.parameters(), lr=args.lr)
+    optim = torch.optim.Adam(
+        mr.model_.parameters(), lr=args.lr, weight_decay=args.weight_decay
+    )
     os.makedirs(args.storage_dir, exist_ok=True)
     artifact_dir = os.path.join(args.storage_dir, "artifacts")
 
@@ -124,6 +126,7 @@ if __name__ == "__main__":
         help="Pickled dataset file. If none given, NLTK BROWN dataset will be used",
     )
     parser.add_argument("--force_cpu", type=bool, default=False)
+    parser.add_argument("--weight_decay", type=float, default=0.0)
 
     args = parser.parse_args()
     main(args)
