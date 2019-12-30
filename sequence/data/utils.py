@@ -24,14 +24,16 @@ class Language:
         if self.remove_punctuation:
             # Make a translation table when given 3 args.
             # All punctuation will be mapped to None
-            word.translate(self.translation_table)
+            word = word.translate(self.translation_table)
         return word
 
     def register(self, words):
         [self.register_single_word(w) for w in words]
 
-    def register_single_word(self, word):
-        self.w2i[self.clean(word)] = len(self.w2i)
+    def register_single_word(self, word, clean=False):
+        c = self.clean(word)
+        if len(c) > 0:
+            self.w2i[c] = len(self.w2i)
 
     @property
     def i2w(self):
@@ -42,6 +44,10 @@ class Language:
     @property
     def vocabulary_size(self):
         return len(self.w2i)
+
+    @property
+    def words(self):
+        return list(self.w2i.keys())
 
     def __getitem__(self, item):
         if isinstance(item, int):
@@ -93,17 +99,19 @@ class Dataset(ds):
         s : np.array[int]
             A -1 padded sequence of shape (self.max_len, )
         """
+        s = list(filter(lambda x: len(x) > 0, [self.language.clean(w) for w in s]))
+
         # All the sentences are -1 padded
         idx = np.ones(self.max_len + 1) * -1
 
         if len(s) > self.max_len or len(s) < self.min_len:
             # will be removed jit
             return idx
+
         for i, w in enumerate(s):
             if w in self.skip:
                 continue
 
-            w = self.language.clean(w)
             if w not in self.language.w2i:
                 self.language.register_single_word(w)
             idx[i] = self.language.w2i[w]
