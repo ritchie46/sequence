@@ -1,7 +1,7 @@
 import pickle
 
 from sequence.model.vae import VAE
-from sequence.data.datasets import treebank
+from sequence.data.datasets import treebank, brown
 import os
 from sequence.utils import annealing_sigmoid
 from sequence import callbacks
@@ -19,13 +19,17 @@ logger = logging.getLogger(__name__)
 
 def main(args):
     fn = args.dataset
-    if fn is None:
-        logger.info("Using NLTK treebank dataset")
+    if fn == "treebank":
         dataset, language = treebank()
+        fn = "NLTK " + fn
+    elif fn == "brown":
+        fn = "NLTK " + fn
+        dataset, language = brown()
     else:
-        logger.info(f"Using dataset from {fn}")
         with open(fn, "rb") as f:
             dataset = pickle.load(f)
+
+    logger.info(f"Using {fn} dataset")
     dataset, _ = dataset.split(
         [args.train_percentage, 1 - args.train_percentage], shuffle=False
     )
@@ -122,8 +126,9 @@ if __name__ == "__main__":
     parser.add_argument(
         "--dataset",
         type=str,
-        default=None,
-        help="Pickled dataset file. If none given, NLTK BROWN dataset will be used",
+        default="brown",
+        help="Pickled dataset file path, or named dataset (brown, treebank). "
+        "If none given, NLTK BROWN dataset will be used",
     )
     parser.add_argument("--force_cpu", type=bool, default=False)
     parser.add_argument("--weight_decay", type=float, default=0.0)
