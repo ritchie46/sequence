@@ -18,6 +18,7 @@ logger = logging.getLogger(__name__)
 
 
 def main(args):
+    callbacks_ = []
     fn = args.dataset
     if fn == "treebank":
         dataset, language = treebank()
@@ -63,9 +64,9 @@ def main(args):
         mr.model_.parameters(), lr=args.lr, weight_decay=args.weight_decay
     )
     os.makedirs(args.storage_dir, exist_ok=True)
-    artifact_dir = os.path.join(args.storage_dir, "artifacts")
 
     name = f"z{args.latent_size}/h{args.hidden_size}/e{args.embedding_dim}/wd{args.word_dropout}"
+    artifact_dir = os.path.join(args.storage_dir, "artifacts", name)
     if args.tensorboard:
         tb_dir = os.path.join(args.storage_dir, "tb")
         os.makedirs(tb_dir, exist_ok=True)
@@ -79,7 +80,11 @@ def main(args):
 
     os.makedirs(os.path.join(artifact_dir, name), exist_ok=True)
     if args.save_every_n is not None:
-        callbacks.save_every_n_steps(n=args.save_every_n, mr=mr, dump_dir=artifact_dir)
+        callbacks_.append(
+            callbacks.save_every_n_steps(
+                n=args.save_every_n, mr=mr, dump_dir=artifact_dir
+            )
+        )
 
     global_step = 0
     for e in range(args.epochs):
@@ -94,9 +99,10 @@ def main(args):
             tensorboard_writer=writer,
             global_step=global_step,
             anneal_f=anneal_f,
+            callbacks=callbacks_,
         )
 
-        with open(os.path.join(artifact_dir, name + f"/{e}.pkl"), "wb") as f:
+        with open(os.path.join(artifact_dir, f"{e}.pkl"), "wb") as f:
             mr.dump(f)
 
 
