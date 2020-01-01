@@ -28,6 +28,7 @@ def main(args):
     else:
         with open(fn, "rb") as f:
             dataset = pickle.load(f)
+            language = dataset.language
 
     logger.info(f"Using {fn} dataset")
     dataset, _ = dataset.split(
