@@ -49,6 +49,25 @@ class Language:
     def words(self):
         return list(self.w2i.keys())
 
+    def translate_batch(self, padded):
+        """
+
+        Parameters
+        ----------
+        padded : torch.Tensor
+            Tensor with word indexes. Shape: (seq_len, batch)
+
+        Returns
+        -------
+        out : np.Array
+            Array with matching words. Shape: (seq_len, batch)
+        """
+        # Only eval once
+        d = self.i2w
+        d[-1] = ""
+        padded = padded.cpu().data.numpy()
+        return np.vectorize(d.get)(padded)
+
     def __getitem__(self, item):
         if isinstance(item, int):
             return self.i2w[item]
