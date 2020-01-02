@@ -14,6 +14,8 @@ class Language:
             self.translation_table = str.maketrans("", "", string.punctuation)
         else:
             self.remove_punctuation = None
+        # Warning. Don't change index 0, 1, and 2
+        # These are used in the models!
         self.w2i = {"EOS": 0, "SOS": 1, "UNKNOWN": 2}
         if words is not None:
             self.register(words)

@@ -95,12 +95,22 @@ def run_decoder(model, packed_padded, word_dropout, h):
     -------
     (out, target) : tuple[tensor, tensor]
     """
+
     padded, lengths = torch.nn.utils.rnn.pad_packed_sequence(
         packed_padded, padding_value=-1
     )
     # Decoder can also be done in a single batch, as we  don't feed the output
     # of the rnn back into itself. We only pass the correct words, or unknown.
     padded_decoder = padded.clone().detach()
+
+    # Prepend SOS: 1 and Remove EOS:  from input
+    padded_decoder = torch.cat(
+        [
+            torch.ones((1, padded.shape[1]), dtype=torch.long, device=padded.device),
+            padded_decoder[:-1, :],
+        ],
+        dim=0,
+    )
     if word_dropout > 0:
         mask = padded > 0
         keep_prob = torch.bernoulli(
@@ -122,10 +132,7 @@ def run_decoder(model, packed_padded, word_dropout, h):
 
 
 def det_neg_elbo(
-    model,
-    packed_padded,
-    word_dropout=1.0,
-    test_loss=False,
+    model, packed_padded, word_dropout=1.0, test_loss=False,
 ):
     """
     Negative ELBO.
@@ -164,7 +171,5 @@ def det_neg_elbo(
             )
         assert np.allclose(loss_.item(), nll.item())
 
-    kl = -0.5 * torch.sum(1 + log_var - mu**2 - log_var.exp())
+    kl = -0.5 * torch.sum(1 + log_var - mu ** 2 - log_var.exp())
     return nll, kl
-
-
