@@ -38,19 +38,23 @@ def main(args):
 
     logging.info(f"VOCABULARY SIZE: {language.vocabulary_size}")
 
-    mr = ModelRegistry("vae")
-    mr.register(
-        VAE,
-        insert_methods="pytorch",
-        **dict(
-            vocabulary_size=language.vocabulary_size,
-            embedding_dim=args.embedding_dim,
-            hidden_size=args.hidden_size,
-            latent_size=args.latent_size,
-            bidirectional=False,
-            rnn_layers=1,
-        ),
-    )
+    if args.model_registry_path is None:
+        mr = ModelRegistry("vae")
+        mr.register(
+            VAE,
+            insert_methods="pytorch",
+            **dict(
+                vocabulary_size=language.vocabulary_size,
+                embedding_dim=args.embedding_dim,
+                hidden_size=args.hidden_size,
+                latent_size=args.latent_size,
+                bidirectional=False,
+                rnn_layers=1,
+            ),
+        )
+    else:
+        with open(args.model_registry_path, "rb") as f:
+            mr = ModelRegistry().load(f)
 
     if torch.cuda.is_available() and not args.force_cpu:
         device = "cuda"
@@ -85,8 +89,13 @@ def main(args):
                 n=args.save_every_n, mr=mr, dump_dir=artifact_dir
             )
         )
+    callbacks_.append(callbacks.register_global_step(mr))
 
-    global_step = 0
+    global_step = args.global_step
+    # Only use ModelRegistries global step if global_step is non default.
+    if hasattr(mr, "global_step_") and global_step == 0:
+        global_step = args.global_step
+
     for e in range(args.epochs):
         global_step = run_epoch(
             e,
@@ -139,6 +148,16 @@ if __name__ == "__main__":
     )
     parser.add_argument("--force_cpu", type=bool, default=False)
     parser.add_argument("--weight_decay", type=float, default=0.0)
+    parser.add_argument(
+        "--global_step", type=int, default=0, help="Overwrite global step."
+    )
+    parser.add_argument(
+        "--continue",
+        type=str,
+        default=None,
+        help="Path to existing ModelRegistry",
+        dest="model_registry_path",
+    )
 
     args = parser.parse_args()
     main(args)
