@@ -6,6 +6,10 @@ import numpy as np
 
 
 class VAE(EncoderDecoder):
+    """
+    Implementation of Generating Sentences from a Continuous Space
+    https://arxiv.org/pdf/1511.06349.pdf
+    """
     def __init__(
         self,
         vocabulary_size,
