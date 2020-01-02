@@ -72,15 +72,25 @@ class EncoderDecoder(nn.Module):
             nn.Linear(self.linear_in, vocabulary_size), nn.LogSoftmax(-1)
         )
 
-    def apply_emb(self, x):
+    def apply_emb(self, x, pack=False):
         if isinstance(x, torch.nn.utils.rnn.PackedSequence):
             padded, lengths = torch.nn.utils.rnn.pad_packed_sequence(x, padding_value=0)
             emb = self.emb(padded)
+            pack = True
+        else:
+            if len(x.shape) > 1:
+                shape = (x.shape[0], x.shape[1], -1)
+            else:
+                shape = (x.shape[0], 1, -1)
+            emb = self.emb(x).reshape(*shape)
+
+            if pack:
+                lengths = torch.full((x.shape[1],), fill_value=x.shape[0], device=x.device)
+
+        if pack:
             emb = torch.nn.utils.rnn.pack_padded_sequence(
                 emb, lengths, enforce_sorted=False
             )
-        else:
-            emb = self.emb(x).reshape(len(x), 1, -1)
         return emb
 
     def encode(self, x):

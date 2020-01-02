@@ -67,7 +67,7 @@ class VAE(EncoderDecoder):
         return h, z, mu, log_var
 
     def decode(self, x, h):
-        emb = self.apply_emb(x)
+        emb = self.apply_emb(x, pack=True)
         packed_padded_out, h = self.rnn_dec(emb, h)
 
         # padded, Shape: (batch_size, seq_len, num_directions * n_layers)
@@ -173,3 +173,42 @@ def det_neg_elbo(
 
     kl = -0.5 * torch.sum(1 + log_var - mu ** 2 - log_var.exp())
     return nll, kl
+
+
+def inference(model, packed_padded, n=50, use_mean=True):
+    """
+    Evaluation of model at inference time.
+
+    Parameters
+    ----------
+    model : sequence.model.vae.VAE
+    packed_padded : torch.nn.utils.rnn.pack_padded_sequence
+    n : int
+        Sequence length of predictions. Note, that <EOS> could be predicted earlier.
+    use_mean : bool
+        Use mu vector to do evaluation. This is the best estimate for evaluation.
+
+    Returns
+    -------
+    out : torch.Tensor
+        Shape: (batch, seq_len)
+
+    """
+    h, z, mu, log_var = model.encode(packed_padded)
+
+    if use_mean:
+        h = model.latent2hidden(mu).reshape(h.shape)
+
+    padded, lengths = torch.nn.utils.rnn.pad_packed_sequence(
+        packed_padded, padding_value=-1
+    )
+    # Start with <SOS> token
+    in_ = torch.ones((1, padded.shape[1]), dtype=torch.long, device=padded.device)
+
+    for _ in range(n):
+        out = model.decode(in_, h).argmax(-1).T
+
+        # Add prediction to the input.
+        in_ = torch.cat([in_, out[-1:, :]])
+    return out.T
+
