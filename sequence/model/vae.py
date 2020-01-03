@@ -179,7 +179,7 @@ def det_neg_elbo(
     return nll, kl
 
 
-def inference(model, packed_padded, n=50, use_mean=True):
+def inference(model, packed_padded, n=1, use_mean=True):
     """
     Evaluation of model at inference time.
 
@@ -189,6 +189,7 @@ def inference(model, packed_padded, n=50, use_mean=True):
     packed_padded : torch.nn.utils.rnn.pack_padded_sequence
     n : int
         Sequence length of predictions. Note, that <EOS> could be predicted earlier.
+        If n == 1, all the activations are returned instead of the argmax.
     use_mean : bool
         Use mu vector to do evaluation. This is the best estimate for evaluation.
 
@@ -208,6 +209,9 @@ def inference(model, packed_padded, n=50, use_mean=True):
     )
     # Start with <SOS> token
     in_ = torch.ones((1, padded.shape[1]), dtype=torch.long, device=padded.device)
+
+    if n == 1:
+        return model.decode(in_, h).T
 
     for _ in range(n):
         out = model.decode(in_, h).argmax(-1).T
