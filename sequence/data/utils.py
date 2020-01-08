@@ -67,6 +67,7 @@ class Language:
         # Only eval once
         d = self.i2w
         d[-1] = ""
+
         padded = padded.cpu().data.numpy()
         return np.vectorize(d.get)(padded)
 
@@ -163,7 +164,7 @@ class Dataset(ds):
             j = min(size, j)
 
             # Sentences to integers
-            a = np.array(list(map(self.transform_sentence, paths[i:j])))
+            a = np.array(list(map(self.transform_sentence, paths[i:j])), dtype=np.int32)
 
             # Remove empty sequences jit. Because of -1 padding sum == max_len + 1
             mask = np.sum(a, 1) == -(self.max_len + 1)
