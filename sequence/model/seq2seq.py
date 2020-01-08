@@ -3,9 +3,10 @@ import numpy as np
 import torch.nn.functional as F
 import torch
 from sequence.utils import masked_flip, get_batch_size
+from sequence.model.modular import Embedding
 
 
-class EncoderDecoder(nn.Module):
+class EncoderDecoder(Embedding):
     def __init__(
         self,
         vocabulary_size,
@@ -36,26 +37,17 @@ class EncoderDecoder(nn.Module):
         rnn_type : str
             'gru' or 'lstm'
         """
-        super().__init__()
+        super().__init__(vocabulary_size, embedding_dim, custom_embeddings)
         if bidirectional:
             self.linear_in = latent_size * 2
         else:
             self.linear_in = latent_size
         self.linear_in *= rnn_layers
 
-        if custom_embeddings is None:
-            self.emb = nn.Embedding(vocabulary_size, embedding_dim)
-        else:
-            vocabulary_size = custom_embeddings.shape[0]
-            embedding_dim = custom_embeddings.shape[1]
-            self.emb = nn.Embedding(*custom_embeddings.shape, _weight=custom_embeddings)
-            self.emb.weight.requires_grad = False
-
         rnn = nn.GRU if rnn_type == "gru" else nn.LSTM
 
-        self.vocabulary_size = vocabulary_size
         self.rnn_enc = rnn(
-            embedding_dim,
+            self.embedding_dim,
             latent_size,
             bidirectional=bidirectional,
             num_layers=rnn_layers,
@@ -63,35 +55,14 @@ class EncoderDecoder(nn.Module):
 
         # decoder
         self.rnn_dec = rnn(
-            embedding_dim,
+            self.embedding_dim,
             latent_size,
             bidirectional=bidirectional,
             num_layers=rnn_layers,
         )
         self.decoder_out = nn.Sequential(
-            nn.Linear(self.linear_in, vocabulary_size), nn.LogSoftmax(-1)
+            nn.Linear(self.linear_in, self.vocabulary_size), nn.LogSoftmax(-1)
         )
-
-    def apply_emb(self, x, pack=False):
-        if isinstance(x, torch.nn.utils.rnn.PackedSequence):
-            padded, lengths = torch.nn.utils.rnn.pad_packed_sequence(x, padding_value=0)
-            emb = self.emb(padded)
-            pack = True
-        else:
-            if len(x.shape) > 1:
-                shape = (x.shape[0], x.shape[1], -1)
-            else:
-                shape = (x.shape[0], 1, -1)
-            emb = self.emb(x).reshape(*shape)
-
-            if pack:
-                lengths = torch.full((x.shape[1],), fill_value=x.shape[0], device=x.device)
-
-        if pack:
-            emb = torch.nn.utils.rnn.pack_padded_sequence(
-                emb, lengths, enforce_sorted=False
-            )
-        return emb
 
     def encode(self, x):
         """
@@ -105,7 +76,7 @@ class EncoderDecoder(nn.Module):
         -------
         h : torch.tensor
             Last hidden state
-            shape: (batch, input_size)
+            shape: (num_layers * num_directions, batch, hidden_size)
         """
         emb = self.apply_emb(x)
         out, h = self.rnn_enc(emb)
