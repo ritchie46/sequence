@@ -32,7 +32,7 @@ class Language:
     def register(self, words):
         [self.register_single_word(w) for w in words]
 
-    def register_single_word(self, word, clean=False):
+    def register_single_word(self, word):
         c = self.clean(word)
         if len(c) > 0:
             self.w2i[c] = len(self.w2i)
@@ -68,7 +68,8 @@ class Language:
         d = self.i2w
         d[-1] = ""
 
-        padded = padded.cpu().data.numpy()
+        if hasattr(padded, "cpu"):
+            padded = padded.cpu().data.numpy()
         return np.vectorize(d.get)(padded)
 
     def __getitem__(self, item):
