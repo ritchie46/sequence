@@ -1,32 +1,38 @@
 import numpy as np
+from dask.array.core import Array
 
 
-def p_at_k(pred, target, k=20):
+def p_at_k(pred, target, k=20, reduction="average"):
     """
 
     Parameters
     ----------
     pred : Union[torch.Tensor, np.array]
-        Shape: (seq_len, batch)
+        Activations per session.
+        Shape: (batch, seq_len)
     target : Union[torch.Tensor, np.array]
-        Shape: (seq_len, batch)
+        Shape: (batch, seq_len)
     k : int
+    reduction : str
+        'average' | 'sum'
 
     Returns
     -------
+    p@k : float
 
     """
-    if hasattr(target, 'cpu'):
-        target = target.cpu().data.numpy().T
-    else:
-        target = target.T
+    if hasattr(target, "cpu"):
+        target = target.cpu().data.numpy()
+    if isinstance(target, Array):
+        target = np.array(target)
 
-    if hasattr(target, 'cpu'):
+    if hasattr(pred, "cpu"):
         pred = pred.cpu().data.numpy()
 
     # shape: (batch, k)
     # numpys sort is faster
-    pred_top = np.argsort(axis=0, a=pred)[::-1][:k, ...].squeeze().T
+    pred_top = np.argsort(axis=-1, a=pred)[..., ::-1][..., :k]
+
     # EOS to a non existing index
     pred_top[pred_top == 0] = -999
 
@@ -34,4 +40,7 @@ def p_at_k(pred, target, k=20):
     for i in range(target.shape[0]):
         c += len(np.intersect1d(pred_top[i, :], np.unique(target[i, :])))
 
-    return c / target.shape[0]
+    if reduction == "average":
+        c /= target.shape[0]
+
+    return c
