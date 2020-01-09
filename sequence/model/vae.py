@@ -213,7 +213,8 @@ def inference(model, packed_padded, n=1, use_mean=True, return_activations=False
     in_ = torch.ones((1, padded.shape[1]), dtype=torch.long, device=padded.device)
 
     for i in range(n):
-        activation = model.decode(in_, h)
+        # log-softmax to softmax
+        activation = torch.exp(model.decode(in_, h))
         out = activation.argmax(-1).T
 
         # Add prediction to the input.
