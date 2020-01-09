@@ -1,16 +1,20 @@
 import numpy as np
-from dask.array.core import Array
 
 
-def p_at_k(pred, target, k=20, reduction="average"):
+def rank_scores(pred, target, k=20, reduction="average", include_p_at_k=True, include_mrr=True):
     """
+    Precision @ k and Mean reciprocal rank.
+    Modified from:
+        https://github.com/CRIPAC-DIG/SR-GNN/blob/90123c88850eec8c574518fee6e46aefb42acb94/pytorch_code/model.py#L123
+
+    TODO: Optimize. Broadcasting membership?
 
     Parameters
     ----------
-    pred : Union[torch.Tensor, np.array]
+    pred : torch.tensor
         Activations per session.
-        Shape: (batch, seq_len)
-    target : Union[torch.Tensor, np.array]
+        Shape: (batch, seq_len, vocabulary)
+    target : torch.tensor
         Shape: (batch, seq_len)
     k : int
     reduction : str
@@ -18,29 +22,36 @@ def p_at_k(pred, target, k=20, reduction="average"):
 
     Returns
     -------
-    p@k : float
+    p@k, mrr : tuple[float]
 
     """
-    if hasattr(target, "cpu"):
-        target = target.cpu().data.numpy()
-    if isinstance(target, Array):
-        target = np.array(target)
+    hits = []
+    mrr = []
+    pred_top_idx = pred.topk(k)[1]
 
-    if hasattr(pred, "cpu"):
-        pred = pred.cpu().data.numpy()
+    batch_size = target.shape[0]
+    # Loop over batch
+    for i in range(batch_size):
+        # l
+        seq = target[i, ...]
 
-    # shape: (batch, k)
-    # numpys sort is faster
-    pred_top = np.argsort(axis=-1, a=pred)[..., ::-1][..., :k]
+        # l, k
+        pred = pred_top_idx[i]
 
-    # EOS to a non existing index
-    pred_top[pred_top == 0] = -999
+        # Loop over sequence
+        for j in range(min(len(seq), pred.shape[0])):
+            idx = np.where(pred[j] == seq[j])[0]
 
-    c = 0
-    for i in range(target.shape[0]):
-        c += len(np.intersect1d(pred_top[i, :], np.unique(target[i, :])))
+            if include_p_at_k:
+                hits.append(len(idx) > 0)
+            if include_mrr:
+                if len(idx) == 0:
+                    mrr.append(0)
+                else:
+                    mrr.append(1 / (idx[0] + 1))
 
     if reduction == "average":
-        c /= target.shape[0]
+        return np.mean(hits), np.mean(mrr)
 
-    return c
+    return np.sum(hits), np.sum(mrr)
+
