@@ -1,4 +1,5 @@
 from torch import nn
+import torch.nn.functional as F
 import torch
 from sequence.model.modular import Embedding
 import numpy as np
@@ -141,4 +142,16 @@ class STMP(Embedding):
         # b,l,v
         z = torch.sigmoid(trilinear_composition(h_s, h_t, x))
         # Softmax over v
-        return torch.softmax(z, -1)
+        return torch.log_softmax(z, -1)
+
+
+def det_loss(model, packed_padded):
+    y_hat = model(packed_padded)
+
+    padded, lengths = torch.nn.utils.rnn.pad_packed_sequence(
+        packed_padded, padding_value=-1
+    )
+
+    return F.nll_loss(
+        y_hat.reshape(-1, y_hat.shape[-1]), padded.T.flatten(), ignore_index=-1
+    )
