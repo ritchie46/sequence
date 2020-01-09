@@ -1,6 +1,6 @@
 import torch
 from sequence.test import language, words, dataset, paths
-from sequence.model.STAMP import STMP, trilinear_composition, det_loss
+from sequence.model.stamp import STMP, trilinear_composition, det_loss
 import numpy as np
 
 
