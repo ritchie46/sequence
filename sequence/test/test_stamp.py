@@ -18,10 +18,10 @@ def test_trilinear_composition():
     torch.manual_seed(0)
     b = 3
     e = 2
-    v = 4
-    l = 5
+    v = 11
+    l = 6
 
-    h_s = torch.rand(b, e)
+    h_s = torch.rand(l, b, e)
     h_t = torch.rand(l, b, e)
     x = torch.rand(v, e)
 

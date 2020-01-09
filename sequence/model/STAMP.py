@@ -18,7 +18,7 @@ def trilinear_composition(h_s, h_t, x, einsum=True):
     Parameters
     ----------
     h_s : torch.tensor
-        Shape: (b, e)
+        Shape: (l, b, e)
     h_t : torch.tensor
         Shape: (l, b, e)
     x : torch.tensor
@@ -34,18 +34,18 @@ def trilinear_composition(h_s, h_t, x, einsum=True):
         Shape: (b, l, v)
     """
     if einsum:
-        return torch.einsum("be,lbe,ve->blv", h_s, h_t, x)
+        return torch.einsum("lbe,lbe,ve->blv", h_s, h_t, x)
 
     else:
-        b = h_s.shape[0]
+        b = h_s.shape[1]
 
         # h_t ⊙ x
         # l,b,e ⊙ v,1,1,e  (so b,e dimensions are broadcasted)
         bc = h_t * x.reshape(x.shape[0], 1, 1, x.shape[1])
 
-        # aT @ (bc)
+        # aT @ (bc) = h_sT @ (h_t ⊙ x)
         # ---------
-        # b,e @ v,l,e,b
+        # l,b,e @ v,l,e,b
         # b,e @ e,b will be matrix multiplied. v,l are untouched.
         # result is a v,l,b,b matrix
         vlbb = torch.matmul(h_s, bc.transpose(-1, -2))
@@ -63,20 +63,33 @@ class STMP(Embedding):
         https://dl.acm.org/doi/pdf/10.1145/3219819.3219950?download=true
     """
 
-    def __init__(self, vocabulary_size, embedding_dim=10, custom_embeddings=None):
+    def __init__(
+        self,
+        vocabulary_size,
+        embedding_dim=10,
+        custom_embeddings=None,
+        nonlinearity="tanh",
+    ):
         super().__init__(vocabulary_size, embedding_dim, custom_embeddings)
+
+        if nonlinearity == "tanh":
+            nl = nn.Tanh
+        elif nonlinearity == "relu":
+            nl = nn.ReLU
+        else:
+            raise ValueError(f"nonlinearity {nonlinearity} is not possible.")
+
         self.mlp_a = nn.Sequential(
-            nn.Linear(self.embedding_dim, embedding_dim),
-            # nn.ReLU()
+            nn.Linear(self.embedding_dim, embedding_dim), nn.Tanh()
         )
         self.mlp_b = nn.Sequential(
-            nn.Linear(self.embedding_dim, embedding_dim, bias=False),
-            # nn.ReLU()
+            nn.Linear(self.embedding_dim, embedding_dim, bias=False), nn.Tanh()
         )
 
     def external_memory(self, emb):
         """
-        This is simply the average of the session sequence.
+        Compute the cumulative average.
+
         In the paper, noted as m_s
 
         emb : torch.nn.utils.rnn.pack_padded_sequence
@@ -85,29 +98,36 @@ class STMP(Embedding):
         -------
         avg, : torch.tensor
             Average of the different sessions in the batch
-            Shape: (batch, embedding)
+            Shape: (l,b,e)
         padded : torch.tensor
             Zero padded embedding sequence
-            Shape: (longest_sequence, batch, embedding)
+            Shape: (l,b,e)
         lengths : torch.tensor
             Lengths of the sequences in the batch.
             Shape: (batch,)
 
         """
         # Pad with zeros, so they don't influence the sum
-        # Padded shape: (longest_sequence, batch, embedding)
+        # Padded shape: (l,b,e)
         padded, lengths = torch.nn.utils.rnn.pad_packed_sequence(emb, padding_value=0)
 
-        # Shape: (batch, embedding)
-        sum_ = torch.sum(padded, 0)
-        batch_size = sum_.shape[0]
+        # l,b,e
+        cumsum = torch.cumsum(padded, 0)
+        batch_size = cumsum.shape[1]
 
-        return sum_ / lengths.reshape(batch_size, -1), padded, lengths
+        # Note that for the shorter sequences the cum avg is not correct
+        # after the last time step of that sequence.
+        # This is corrected in the loss calculation.
+        lengths = torch.arange(1, 1 + cumsum.shape[0])
+        return cumsum / lengths.reshape(cumsum.shape[0], 1, 1), padded
 
     def forward(self, x):
         # packed padded
         emb = self.apply_emb(x)
-        m_s, zero_padded_emb, seq_lengths = self.external_memory(emb)
+
+        # Rolling average session:
+        #   m_s: l,b,e
+        m_s, zero_padded_emb = self.external_memory(emb)
 
         # b,e
         h_s = self.mlp_a(m_s)
@@ -118,4 +138,7 @@ class STMP(Embedding):
         # v,e
         x = self.emb.weight
 
-        trilinear_composition(h_s, h_t, x)
+        # b,l,v
+        z = torch.sigmoid(trilinear_composition(h_s, h_t, x))
+        # Softmax over v
+        return torch.softmax(z, -1)
