@@ -80,12 +80,8 @@ class STMP(Embedding):
         else:
             raise ValueError(f"nonlinearity {nonlinearity} is not possible.")
 
-        self.mlp_a = nn.Sequential(
-            nn.Linear(self.embedding_dim, embedding_dim), nn.Tanh()
-        )
-        self.mlp_b = nn.Sequential(
-            nn.Linear(self.embedding_dim, embedding_dim, bias=False), nn.Tanh()
-        )
+        self.mlp_a = nn.Sequential(nn.Linear(self.embedding_dim, embedding_dim), nl())
+        self.mlp_b = nn.Sequential(nn.Linear(self.embedding_dim, embedding_dim), nl())
 
     def external_memory(self, emb):
         """
@@ -119,7 +115,7 @@ class STMP(Embedding):
         # Note that for the shorter sequences the cum avg is not correct
         # after the last time step of that sequence.
         # This is corrected in the loss calculation.
-        lengths = torch.arange(1, 1 + cumsum.shape[0])
+        lengths = torch.arange(1, 1 + cumsum.shape[0], device=padded.device)
         return cumsum / lengths.reshape(cumsum.shape[0], 1, 1), padded
 
     def forward(self, x):

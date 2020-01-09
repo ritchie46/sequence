@@ -25,7 +25,7 @@ if __name__ == "__main__":
         type=str,
         default="brown",
         help="Pickled dataset file path, or named dataset (brown, treebank). "
-             "If none given, NLTK BROWN dataset will be used",
+        "If none given, NLTK BROWN dataset will be used",
     )
     parser.add_argument("--force_cpu", type=bool, default=False)
     parser.add_argument("--weight_decay", type=float, default=0.0)
@@ -41,7 +41,7 @@ if __name__ == "__main__":
     )
 
     # VAE
-    vae_parser = subparsers.add_parser("vae", help='Run VAE model')
+    vae_parser = subparsers.add_parser("vae", help="Run VAE model")
     vae_parser.set_defaults(func=main.vae.main)
     vae_parser.add_argument("--hidden_size", type=int, default=64)
     vae_parser.add_argument("--latent_size", type=int, default=100)
@@ -53,6 +53,11 @@ if __name__ == "__main__":
         help="In how many epochs the annealing should be 1.",
     )
 
+    # STAMP
+    stamp_parser = subparsers.add_parser("stamp", help="Run ST(A)MP model")
+    stamp_parser.set_defaults(func=main.stamp.main)
+    stamp_parser.add_argument("--nonlinearity", type=str, default="tanh")
+    stamp_parser.add_argument("--model", type=str, default="stmp", help="stmp or stamp")
+
     args = parser.parse_args()
     args.func(args)
-

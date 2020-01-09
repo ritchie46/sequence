@@ -1,5 +1,5 @@
 import logging
-from sequence.model.STAMP import det_loss
+from sequence.model.stamp import det_loss
 import torch
 from sequence.utils import backward
 
@@ -52,6 +52,7 @@ def run_epoch(
         i = i * batch_size
 
         packed_padded, padded = dataset.get_batch(i, i + batch_size, device=device)
+
         loss = det_loss(model, packed_padded)
         backward(loss, optim)
         optim.step()
