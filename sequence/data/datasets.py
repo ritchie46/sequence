@@ -6,6 +6,7 @@ import logging
 from pyunpack import Archive, PatoolError
 import pandas as pd
 import numpy as np
+import pickle
 
 
 logging.basicConfig(level=logging.INFO)
@@ -47,12 +48,14 @@ def download_and_unpack_yoochoose(storage_dir):
             os.removedirs(ds)
 
 
-def yoochoose(dn, nrows=None, min_unique=5, skiprows=None, div64=False, test=False):
+def yoochoose(
+    storage_dir, nrows=None, min_unique=5, skiprows=None, div64=False, test=False, cache=True
+):
     """
 
     Parameters
     ----------
-    dn : str
+    storage_dir : str
         Directory path
     nrows : Union[None, int]
         Take only n_rows from the dataset.
@@ -64,6 +67,8 @@ def yoochoose(dn, nrows=None, min_unique=5, skiprows=None, div64=False, test=Fal
         Load yoochoose 1/64
     test : bool
         Load test set
+    cache : bool
+        Cache pickled sequence.data.utils.Dataset in storage_dir
 
     Returns
     -------
@@ -72,17 +77,25 @@ def yoochoose(dn, nrows=None, min_unique=5, skiprows=None, div64=False, test=Fal
                     sequence.data.utils.Language
                     ]
     """
+
+    if cache:
+        cached_file = os.path.join(storage_dir, "yoochoose-ds.pkl")
+        if os.path.isfile(cached_file):
+            with open(cached_file, "rb") as f:
+                ds = pickle.load(f)
+            return ds, ds.language
+
     if test:
         fn = "yoochoose-data/yoochoose-test.dat"
     else:
         fn = "yoochoose-data/yoochoose-clicks.dat"
     df = pd.read_csv(
-        os.path.join(dn, fn),
+        os.path.join(storage_dir, fn),
         names=["session_id", "timestamp", "item_id", "category"],
         usecols=["session_id", "item_id"],
         dtype={"session_id": np.int32, "item_id": np.str},
         nrows=nrows,
-        skiprows=skiprows
+        skiprows=skiprows,
     )
 
     # Series of item_id -> counts
@@ -104,6 +117,9 @@ def yoochoose(dn, nrows=None, min_unique=5, skiprows=None, div64=False, test=Fal
 
     agg = df.groupby("session_id").agg(list)
     ds = Dataset([r[1] for r in agg.itertuples()])
+
+    if cache:
+        with open(cached_file, "wb") as f:
+            pickle.dump(ds, f)
+
     return ds, ds.language
-
-
