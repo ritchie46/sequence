@@ -14,6 +14,8 @@ setup(
         "tensorboardX",
         "dask>=2.8",
         "dumpster",
+        "patool~=1.12",
+        "pyunpack~=0.1.2"
     ],
     python_requires=">=3.6, <3.8",
     dependency_links=["https://github.com/ritchie46/dumpster#egg=dumpster"],

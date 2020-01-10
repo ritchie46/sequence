@@ -5,3 +5,5 @@ dask>=2.8
 tensorboardX==1.9
 git+https://github.com/ritchie46/dumpster.git
 nltk>=3.4.4
+pyunpack~=0.1.2
+patool~=1.12
