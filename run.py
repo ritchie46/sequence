@@ -17,14 +17,14 @@ if __name__ == "__main__":
     parser.add_argument("--tensorboard", type=bool, default=True)
     parser.add_argument("--lr", type=float, default=0.001)
     parser.add_argument("-e", "--epochs", type=int, default=20)
-    parser.add_argument("--min_length", type=int, default=4)
-    parser.add_argument("--max_length", type=int, default=30)
+    parser.add_argument("--min_length", type=int, default=4, help="Minimum sequence length")
+    parser.add_argument("--max_length", type=int, default=30, help="Maximum sequence length")
     parser.add_argument("--train_percentage", type=float, default=0.9)
     parser.add_argument(
         "--dataset",
         type=str,
         default="brown",
-        help="Pickled dataset file path, or named dataset (brown, treebank). "
+        help="Pickled dataset file path, or named dataset (brown, treebank, Yoochoose 1/64). "
         "If none given, NLTK BROWN dataset will be used",
     )
     parser.add_argument("--force_cpu", type=bool, default=False)
@@ -41,7 +41,9 @@ if __name__ == "__main__":
     )
 
     # VAE
-    vae_parser = subparsers.add_parser("vae", help="Run VAE model")
+    vae_parser = subparsers.add_parser(
+        "vae", help="Run VAE model", parents=[parser], add_help=False
+    )
     vae_parser.set_defaults(func=main.vae.main)
     vae_parser.add_argument("--hidden_size", type=int, default=64)
     vae_parser.add_argument("--latent_size", type=int, default=100)
@@ -54,7 +56,9 @@ if __name__ == "__main__":
     )
 
     # STAMP
-    stamp_parser = subparsers.add_parser("stamp", help="Run ST(A)MP model")
+    stamp_parser = subparsers.add_parser(
+        "stamp", help="Run ST(A)MP model", parents=[parser], add_help=False
+    )
     stamp_parser.set_defaults(func=main.stamp.main)
     stamp_parser.add_argument("--nonlinearity", type=str, default="tanh")
     stamp_parser.add_argument("--model", type=str, default="stmp", help="stmp or stamp")

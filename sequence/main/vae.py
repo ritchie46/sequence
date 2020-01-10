@@ -6,8 +6,9 @@ from sequence.main import generic
 
 
 def main(args):
-
-    dataset, language = generic.load_ds(args)
+    name = f"z{args.latent_size}-h{args.hidden_size}-e{args.embedding_dim}-wd{args.word_dropout}"
+    artifact_dir, tb_dir = generic.create_dirs(args, name)
+    dataset, language = generic.load_dataset(args)
     model_registry = generic.load_model_registry(
         args,
         VAE,
@@ -23,9 +24,6 @@ def main(args):
     )
 
     optim = generic.init_optimizer(args, model_registry)
-
-    name = f"z{args.latent_size}-h{args.hidden_size}-e{args.embedding_dim}-wd{args.word_dropout}"
-    artifact_dir, tb_dir = generic.create_dirs(args, name)
     writer = generic.init_tensorboard(args, tb_dir, name)
     callbacks_ = generic.init_callbacks(args, model_registry, artifact_dir)
     global_step = generic.init_global_step(args, model_registry)

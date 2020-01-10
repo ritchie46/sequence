@@ -16,4 +16,8 @@ def yoochoose_dir():
 
 
 def test_yoochoose(yoochoose_dir):
-    ds, lang = datasets.yoochoose(yoochoose_dir, nrows=5000)
+    ds, lang = datasets.yoochoose(yoochoose_dir, nrows=5000, cache=False)
+
+
+def test_yoochoose_64(yoochoose_dir):
+    datasets.yoochoose(yoochoose_dir, div64=True, dataset_kwargs=dict(min_len=2, max_len=1000))

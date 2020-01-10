@@ -1,4 +1,4 @@
-from sequence.data.datasets import treebank, brown
+from sequence.data import datasets
 import pickle
 import logging
 import os
@@ -12,14 +12,21 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
-def load_ds(args):
+def load_dataset(args):
+    dataset_kwargs = dict(min_len=args.min_length, max_len=args.max_length)
     fn = args.dataset
     if fn == "treebank":
-        dataset, language = treebank()
+        dataset, language = datasets.treebank(dataset_kwargs)
         fn = "NLTK " + fn
     elif fn == "brown":
         fn = "NLTK " + fn
-        dataset, language = brown()
+        dataset, language = datasets.brown(dataset_kwargs)
+    elif fn == "Yoochoose 1/64":
+        dataset_kwargs['min_len'] = 1
+        dataset_kwargs['max_len'] = 1e9
+        dataset, language = datasets.yoochoose(
+            args.storage_dir, div64=True, dataset_kwargs=dataset_kwargs
+        )
     else:
         with open(fn, "rb") as f:
             dataset = pickle.load(f)
