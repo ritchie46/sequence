@@ -46,6 +46,9 @@ def rank_scores(
 
         # Loop over sequence
         for j in range(min(len(seq), pred.shape[0])):
+            # Stop at end of sequence
+            if seq[j] == 0:
+                break
             idx = np.where(pred[j] == seq[j])[0]
 
             if include_p_at_k:
