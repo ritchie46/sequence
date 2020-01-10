@@ -1,7 +1,9 @@
 import numpy as np
 
 
-def rank_scores(pred, target, k=20, reduction="average", include_p_at_k=True, include_mrr=True):
+def rank_scores(
+    pred, target, k=20, reduction="average", include_p_at_k=True, include_mrr=True
+):
     """
     Precision @ k and Mean reciprocal rank.
     Modified from:
@@ -19,6 +21,10 @@ def rank_scores(pred, target, k=20, reduction="average", include_p_at_k=True, in
     k : int
     reduction : str
         'average' | 'sum'
+    include_p_at_k : bool
+        Return precision @ k
+    include_mrr : bool
+        Return mean reciprocal rank
 
     Returns
     -------
@@ -51,7 +57,21 @@ def rank_scores(pred, target, k=20, reduction="average", include_p_at_k=True, in
                     mrr.append(1 / (idx[0] + 1))
 
     if reduction == "average":
-        return np.mean(hits), np.mean(mrr)
 
-    return np.sum(hits), np.sum(mrr)
+        return (
+            np.mean(hits) if include_p_at_k else None,
+            np.mean(mrr) if include_mrr else None,
+        )
 
+    return (
+        np.sum(hits) if include_p_at_k else None,
+        np.sum(mrr) if include_mrr else None,
+    )
+
+
+def p_at_k(*args, **kwargs):
+    return rank_scores(*args, **kwargs, include_mrr=False)[0]
+
+
+def mrr(*args, **kwargs):
+    return rank_scores(*args, **kwargs, include_p_at_k=False)[1]
