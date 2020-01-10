@@ -47,7 +47,7 @@ def download_and_unpack_yoochoose(storage_dir):
             os.removedirs(ds)
 
 
-def yoochoose(dn, nrows=None, min_unique=5):
+def yoochoose(dn, nrows=None, min_unique=5, skiprows=None, div64=False, test=False):
     """
 
     Parameters
@@ -58,6 +58,12 @@ def yoochoose(dn, nrows=None, min_unique=5):
         Take only n_rows from the dataset.
     min_unique : int
         Items that occur less than min_unique are removed.
+    skiprows : Union[None, int]
+        Skip rows from csv.
+    div64 : bool
+        Load yoochoose 1/64
+    test : bool
+        Load test set
 
     Returns
     -------
@@ -66,12 +72,17 @@ def yoochoose(dn, nrows=None, min_unique=5):
                     sequence.data.utils.Language
                     ]
     """
+    if test:
+        fn = "yoochoose-data/yoochoose-test.dat"
+    else:
+        fn = "yoochoose-data/yoochoose-clicks.dat"
     df = pd.read_csv(
-        os.path.join(dn, "yoochoose-data/yoochoose-clicks.dat"),
+        os.path.join(dn, fn),
         names=["session_id", "timestamp", "item_id", "category"],
         usecols=["session_id", "item_id"],
         dtype={"session_id": np.int32, "item_id": np.str},
         nrows=nrows,
+        skiprows=skiprows
     )
 
     # Series of item_id -> counts
@@ -87,6 +98,12 @@ def yoochoose(dn, nrows=None, min_unique=5):
     )
     df = df.merge(item_n_unique, how="inner", on="item_id")[["session_id", "item_id"]]
 
+    if div64:
+        n = df.shape[0] // 64
+        df = df.iloc[-n:]
+
     agg = df.groupby("session_id").agg(list)
     ds = Dataset([r[1] for r in agg.itertuples()])
     return ds, ds.language
+
+
