@@ -1,29 +1,28 @@
 from sequence.model.stamp import STMP
 import os
 from sequence.train.stamp import run_epoch
-import logging
 from sequence.main import generic
-
-
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
 
 
 def main(args):
 
     dataset, language = generic.load_ds(args)
 
-    if args.model == 'stmp':
+    if args.model == "stmp":
         cls = STMP
-        name = 'stmp'
+        name = "stmp"
     else:
-        raise NotImplementedError('STAMP is coming up')
-    model_registry = generic.load_model_registry(args, cls, name, **dict(
-        vocabulary_size=language.vocabulary_size,
-        embedding_dim=args.embedding_dim,
-        nonlinearity=args.nonlinearity
-
-    ))
+        raise NotImplementedError("STAMP is coming up")
+    model_registry = generic.load_model_registry(
+        args,
+        cls,
+        name,
+        **dict(
+            vocabulary_size=language.vocabulary_size,
+            embedding_dim=args.embedding_dim,
+            nonlinearity=args.nonlinearity,
+        ),
+    )
 
     optim = generic.init_optimizer(args, model_registry)
 

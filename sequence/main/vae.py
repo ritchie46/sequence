@@ -2,11 +2,7 @@ from sequence.model.vae import VAE
 import os
 from sequence.utils import annealing_sigmoid
 from sequence.train.vae import run_epoch
-import logging
 from sequence.main import generic
-
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
 
 
 def main(args):
