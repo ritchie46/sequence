@@ -106,48 +106,61 @@ class STMP(Embedding):
         """
         # Pad with zeros, so they don't influence the sum
         # Padded shape: (l,b,e)
-        padded, lengths = torch.nn.utils.rnn.pad_packed_sequence(emb, padding_value=0)
+        padded_emb, lengths = torch.nn.utils.rnn.pad_packed_sequence(emb, padding_value=0)
 
         # l,b,e
-        cumsum = torch.cumsum(padded, 0)
+        cumsum = torch.cumsum(padded_emb, 0)
         batch_size = cumsum.shape[1]
 
         # Note that for the shorter sequences the cum avg is not correct
         # after the last time step of that sequence.
         # This is corrected in the loss calculation.
-        lengths = torch.arange(1, 1 + cumsum.shape[0], device=padded.device)
-        return cumsum / lengths.reshape(cumsum.shape[0], 1, 1), padded
+        lengths = torch.arange(1, 1 + cumsum.shape[0], device=padded_emb.device)
+        return cumsum / lengths.reshape(cumsum.shape[0], 1, 1), padded_emb
 
-    def forward(self, x):
+    def forward(self, x, return_all=False):
         # packed padded
         emb = self.apply_emb(x)
 
         # Rolling average session:
         #   m_s: l,b,e
-        m_s, zero_padded_emb = self.external_memory(emb)
+        m_s, m_t = self.external_memory(emb)
 
         # b,e
         h_s = self.mlp_a(m_s)
 
         # l,b,e
-        h_t = self.mlp_b(zero_padded_emb)
+        h_t = self.mlp_b(m_t)
 
         # v,e
         x = self.emb.weight
 
         # b,l,v
         z = torch.sigmoid(trilinear_composition(h_s, h_t, x))
+
+        if return_all:
+            return emb, m_s, m_t, h_s, h_t, x, z, torch.log_softmax(z, -1)
+
         # Softmax over v
         return torch.log_softmax(z, -1)
 
 
 def det_loss(model, packed_padded):
+    # b,l,v
     y_hat = model(packed_padded)
 
+    # padded: l,b
     padded, lengths = torch.nn.utils.rnn.pad_packed_sequence(
         packed_padded, padding_value=-1
     )
+    # The prediction and the target need to be offset.
+    # input x_0:x_t prediction should be x_t+1
+    # Therefore remove last prediction t_n, and remove first target t0.
+    y_hat = y_hat[:, :-1, :]
+
+    target = padded.T[:, 1:]
+    target[target == 0] = -1
 
     return F.nll_loss(
-        y_hat.reshape(-1, y_hat.shape[-1]), padded.T.flatten(), ignore_index=-1
+        y_hat.reshape(-1, y_hat.shape[-1]), target.reshape(-1), ignore_index=-1
     )

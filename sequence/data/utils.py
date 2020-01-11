@@ -95,25 +95,7 @@ class Dataset(ds):
         max_len=None,
         min_len=1,
         device="cpu",
-        insert_eos_token=True,
     ):
-        """
-
-        Parameters
-        ----------
-        sentences : List[List[str]]
-        language : Language
-        skip : list
-        chunk_size : int
-        max_len : int
-            Maximum sequence length
-        min_len : int
-            Minimal sequence length
-        device : str
-            'cpu'/'cuda'
-        insert_eos_token : bool
-            Append a zero to the sentences/sessions
-        """
         self.skip = set(skip)
         self.data = np.array([[]])
         self.max_len = max_len
@@ -125,7 +107,6 @@ class Dataset(ds):
         if sentences is not None:
             self.transform_data(sentences)
         self.device = device
-        self.insert_eos_token = insert_eos_token
 
     def transform_sentence(self, s):
         """
@@ -157,8 +138,7 @@ class Dataset(ds):
             if w not in self.language.w2i:
                 self.language.register_single_word(w)
             idx[i] = self.language.w2i[w]
-        if self.insert_eos_token:
-            idx[i + 1] = 0
+        idx[i + 1] = 0
         return np.array(idx)
 
     def transform_data(self, paths, max_len=None):
