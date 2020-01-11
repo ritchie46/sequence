@@ -163,14 +163,14 @@ def yoochoose(
     del valid_sessions
 
     if div64:
-        logger.info('Get 1/64 split')
-        sessions = df.drop_duplicates('session_id')
-        sessions = sessions.assign(timestamp=pd.to_datetime(sessions['timestamp']))
-        sessions = sessions.sort_values('timestamp')[['session_id']]
+        logger.info("Get 1/64 split")
+        sessions = df.drop_duplicates("session_id")
+        sessions = sessions.assign(timestamp=pd.to_datetime(sessions["timestamp"]))
+        sessions = sessions.sort_values("timestamp")[["session_id"]]
         n = sessions.shape[0] // 64
         sessions = sessions.iloc[-n:]
 
-        df = df.merge(sessions, how='inner', on='session_id')[["session_id", "item_id"]]
+        df = df.merge(sessions, how="inner", on="session_id")[["session_id", "item_id"]]
         del sessions
 
     logger.info("Aggregate sessions")
@@ -178,7 +178,12 @@ def yoochoose(
     del df
 
     language = Language(lower=False, remove_punctuation=False)
-    ds = Dataset([r[1] for r in agg.itertuples()], language, **dataset_kwargs)
+    ds = Dataset(
+        [r[1] for r in agg.itertuples()],
+        language,
+        insert_eos_token=False,
+        **dataset_kwargs,
+    )
 
     if cache:
         with open(cached_file, "wb") as f:
