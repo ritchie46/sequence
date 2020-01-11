@@ -11,7 +11,17 @@ def test_flow(language, dataset):
 
     with torch.no_grad():
         packed_padded, padded = dataset.get_batch(0, batch_size)
-        m(packed_padded)
+        emb, m_s, m_t, h_s, h_t, x, z, y_hat = m(packed_padded, return_all=True)
+
+        assert m_s.shape == m_t.shape
+        assert np.allclose(m_s[0, 0, :], m_t[0, 0, :])
+        # Check single batch sequence
+        # l,b,e
+        m_t = m_t[:, 0, :]
+        m_s = m_s[:, 0, :]
+        assert np.allclose(
+            np.cumsum(m_t, 0) / torch.arange(1, len(m_t) + 1).reshape(-1, 1), m_s
+        )
 
 
 def test_loss(language, dataset):
@@ -22,6 +32,7 @@ def test_loss(language, dataset):
     with torch.no_grad():
         packed_padded, padded = dataset.get_batch(0, batch_size)
         det_loss(m, packed_padded)
+
 
 def test_trilinear_composition():
     torch.manual_seed(0)
