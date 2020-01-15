@@ -50,3 +50,69 @@ def test_trilinear_composition():
     b = trilinear_composition(h_s, h_t, x, einsum=False)
 
     np.testing.assert_almost_equal(a.numpy(), b.numpy())
+
+    # Manual check of trilinear composition
+
+    # l = 2
+    # b = 2
+    # v = 2
+    # e = 2
+
+    # Sequences as 2D embedding vectors.
+
+    # seq1: 1, 2, 3
+    #       1, 2, 3
+
+    # seq2: 4, 5, 6
+    #       4, 5, 6
+
+    h_t = torch.tensor([[[1, 1],
+                        [4, 4]],
+
+                        [[2, 2],
+                        [5, 5]],
+
+                        [[3, 3],
+                         [6, 6]]], dtype=float)
+
+    # h_s = cumulative average
+
+    # cumsum
+    # -------
+    # seq1: 1, 3, 6
+
+    # seq2: 4, 9, 15
+
+    # cum average
+    # -----------
+    # seq1: 1, 1.5, 2
+
+    # seq2: 4, 4.5, 5
+
+    cumsum = torch.cumsum(h_t, 0)
+    lengths = torch.arange(1, 1 + cumsum.shape[0])
+    h_s = cumsum / lengths.reshape(cumsum.shape[0], 1, 1)
+
+    assert np.all(np.isclose(h_s[:, 0, 0], np.array([1., 1.5, 2.])))
+
+    # vocabulary can go to 6
+    x = torch.tensor([[1, 1],
+                      [2, 2],
+                      [3, 3]], dtype=float)
+
+    # b,l,v
+    a = trilinear_composition(h_s, h_t, x)
+
+    # batch 1, length 1, item 1
+    # <h_s, h_t, x_i>
+    h_s = np.array([1, 1])
+    h_t = np.array([1, 1])
+    x_i = np.array([1, 1])
+    assert np.isclose(np.dot(h_s, (h_t * x_i)), a[0, 0, 0])
+
+    # batch 2, length 3, item 3
+    h_s = np.array([5, 5])
+    h_t = np.array([6, 6])
+    x_i = np.array([3, 3])
+    assert np.isclose(np.dot(h_s, (h_t * x_i)), a[1, 2, 2])
+
