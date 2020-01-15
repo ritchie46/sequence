@@ -83,6 +83,8 @@ def yoochoose(
     test=False,
     cache=True,
     dataset_kwargs={},
+    return_agg=False,
+    filter_unique=True,
 ):
     """
 
@@ -104,6 +106,9 @@ def yoochoose(
         Cache pickled sequence.data.utils.Dataset in storage_dir
     dataset_kwargs : dict
         Used to initialize sequence.data.utils.Dataset
+    return_agg : bool
+        Return groupby aggregation.
+    filter_unique : bool
 
     Returns
     -------
@@ -133,22 +138,24 @@ def yoochoose(
         dtype={"session_id": np.int32, "timestamp": "str", "item_id": np.str},
         nrows=nrows,
         skiprows=skiprows,
+        parse_dates=["timestamp"],
     )
+    if filter_unique:
+        logger.info(f"Remove items that occur < {min_unique} times")
+        # Series of item_id -> counts
+        item_n_unique = df["item_id"].value_counts()
 
-    logger.info(f"Remove items that occur < {min_unique} times")
-    # Series of item_id -> counts
-    item_n_unique = df["item_id"].value_counts()
-    # Filter counts < k
-    item_n_unique = item_n_unique[item_n_unique >= min_unique]
+        # Filter counts < k
+        item_n_unique = item_n_unique[item_n_unique >= min_unique]
 
-    # Create df[item_id, counts]
-    item_n_unique = (
-        item_n_unique.to_frame("counts")
-        .reset_index()
-        .rename(columns={"index": "item_id"})
-    )
-    df = df.merge(item_n_unique, how="inner", on="item_id").drop(columns="counts")
-    del item_n_unique
+        # Create df[item_id, counts]
+        item_n_unique = (
+            item_n_unique.to_frame("counts")
+            .reset_index()
+            .rename(columns={"index": "item_id"})
+        )
+        df = df.merge(item_n_unique, how="inner", on="item_id").drop(columns="counts")
+        del item_n_unique
 
     logger.info("Drop sessions of length 1")
     valid_sessions = (
@@ -178,7 +185,12 @@ def yoochoose(
     df = df.sort_values("timestamp")[["session_id", "item_id"]]
     logger.info("Aggregate sessions")
     agg = df.groupby("session_id").agg(list)
+
+    logger.info("Avg length: {:.2f}".format(agg["item_id"].apply(len).mean()))
     del df
+
+    if return_agg:
+        return agg
 
     language = Language(lower=False, remove_punctuation=False)
     ds = Dataset([r[1] for r in agg.itertuples()], language, **dataset_kwargs)
