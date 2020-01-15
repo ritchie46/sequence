@@ -3,6 +3,7 @@ from functools import partial
 import numpy as np
 from sequence.model.seq2seq import run_decoder, EncoderDecoder
 from sequence.model.vae import VAE
+from sequence.model.stamp import STMP
 from sequence.train.ae import run_epoch
 from sequence.utils import anneal
 from sequence.test.test_ae import dataset, language, paths, words
@@ -139,3 +140,21 @@ def test_vae(dataset, language):
         mask = t >= 0
         print(t[mask], out[i, :][mask])
 
+
+def test_stmp(dataset, language):
+    torch.manual_seed(0)
+    np.random.seed(0)
+    m = STMP(language.vocabulary_size, embedding_dim=8, mlp_layers=1, nonlinearity='tanh')
+
+    device = "cuda"
+    if device == "cuda":
+        m.cuda()
+    optim = torch.optim.Adam(m.parameters(), lr=0.01)
+    from sequence.train.stamp import run_epoch
+    run_epoch(2, m, optim, dataset, batch_size=32, device=device)
+
+    packed_padded, padded = dataset.get_batch(0, 200, device=device)
+    y_hat = m(packed_padded)
+
+    from sequence.metrics import rank_scores
+    print(rank_scores(y_hat.cpu(), padded.T[:, 1:].cpu(), k=3))

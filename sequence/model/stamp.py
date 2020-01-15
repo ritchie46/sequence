@@ -70,6 +70,7 @@ class STMP(Embedding):
         embedding_dim=10,
         custom_embeddings=None,
         nonlinearity="tanh",
+        mlp_layers=1,
     ):
         super().__init__(vocabulary_size, embedding_dim, custom_embeddings)
 
@@ -80,8 +81,17 @@ class STMP(Embedding):
         else:
             raise ValueError(f"nonlinearity {nonlinearity} is not possible.")
 
-        self.mlp_a = nn.Sequential(nn.Linear(self.embedding_dim, embedding_dim), nl())
-        self.mlp_b = nn.Sequential(nn.Linear(self.embedding_dim, embedding_dim), nl())
+        def gen_mlp(mlp_layer, nl):
+            return nn.Sequential(
+                *[
+                    a
+                    for _ in range(mlp_layers)
+                    for a in (nn.Linear(self.embedding_dim, self.embedding_dim), nl())
+                ]
+            )
+
+        self.mlp_a = gen_mlp(mlp_layers, nl)
+        self.mlp_b = gen_mlp(mlp_layers, nl)
 
     def external_memory(self, emb):
         """
@@ -106,7 +116,9 @@ class STMP(Embedding):
         """
         # Pad with zeros, so they don't influence the sum
         # Padded shape: (l,b,e)
-        padded_emb, lengths = torch.nn.utils.rnn.pad_packed_sequence(emb, padding_value=0)
+        padded_emb, lengths = torch.nn.utils.rnn.pad_packed_sequence(
+            emb, padding_value=0
+        )
 
         # l,b,e
         cumsum = torch.cumsum(padded_emb, 0)

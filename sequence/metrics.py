@@ -2,7 +2,7 @@ import numpy as np
 
 
 def rank_scores(
-    pred, target, k=20, reduction="average", include_p_at_k=True, include_mrr=True
+    pred, target, k=20, reduction="average", include_p_at_k=True, include_mrr=True, skip_first_k=0, ignore_items=None
 ):
     """
     Precision @ k and Mean reciprocal rank.
@@ -25,6 +25,8 @@ def rank_scores(
         Return precision @ k
     include_mrr : bool
         Return mean reciprocal rank
+    skip_first_k : int
+    ignore_items : set
 
     Returns
     -------
@@ -33,7 +35,7 @@ def rank_scores(
     """
     hits = []
     mrr = []
-    pred_top_idx = pred.topk(k)[1]
+    pred_top_idx = pred.topk(k, dim=-1)[1]
 
     batch_size = target.shape[0]
     # Loop over batch
@@ -45,11 +47,19 @@ def rank_scores(
         pred = pred_top_idx[i]
 
         # Loop over sequence
-        for j in range(min(len(seq), pred.shape[0])):
+        end = min(len(seq), pred.shape[0])
+        if skip_first_k > end:
+            continue
+        for j in range(skip_first_k, end):
             # Stop at end of sequence
-            if seq[j] == 0:
+            target_item = seq[j]
+
+            if target_item == 0:
                 break
-            idx = np.where(pred[j] == seq[j])[0]
+            if ignore_items is not None and target_item in ignore_items:
+                # Skip whole sequence
+                break
+            idx = np.where(pred[j] == target_item)[0]
 
             if include_p_at_k:
                 hits.append(len(idx) > 0)
