@@ -8,6 +8,7 @@ if __name__ == "__main__":
     subparsers = parser.add_subparsers()
 
     # GENERIC
+    parser.add_argument("--logging_name", type=str, default=None)
     parser.add_argument("--batch_size", type=int, default=32)
     parser.add_argument(
         "--save_every_n", type=int, default=None, help="Save every n batches"

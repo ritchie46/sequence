@@ -12,7 +12,7 @@ def main(args):
 
     if args.model == "stmp":
         cls = STMP
-        name = "stmp"
+        name = args.logging_name if args.logging_name is not None else "stmp"
     else:
         raise NotImplementedError("STAMP is coming up")
     model_registry = generic.load_model_registry(
