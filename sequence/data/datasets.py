@@ -130,9 +130,14 @@ def yoochoose(
     else:
         fn = "yoochoose-data/yoochoose-clicks.dat"
 
+    file_name = os.path.join(storage_dir, fn)
+
+    if not os.path.isfile(file_name):
+        download_and_unpack_yoochoose(storage_dir)
+
     logger.info("Read dataset in memory")
     df = pd.read_csv(
-        os.path.join(storage_dir, fn),
+        file_name,
         names=["session_id", "timestamp", "item_id", "category"],
         usecols=["session_id", "timestamp", "item_id"],
         dtype={"session_id": np.int32, "timestamp": "str", "item_id": np.str},
