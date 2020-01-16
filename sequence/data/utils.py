@@ -174,6 +174,7 @@ class Dataset(ds):
             self.data = da.concatenate([self.data, a], axis=0)
 
         self.data = self.data.persist()
+        self.data = self.data.rechunk('auto')
         self.set_idx()
 
     def shuffle(self):

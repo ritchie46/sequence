@@ -173,13 +173,18 @@ def yoochoose(
     valid_sessions = valid_sessions[valid_sessions["count"] > 1]
     df = df.merge(valid_sessions, how="inner", on="session_id")
     del valid_sessions
+    df = df.sort_values("timestamp")
+
+    df_test = df.iloc[-71233:]
+    df = df.iloc[:-71233]
+    df_test = df_test[df_test["item_id"].isin(df["item_id"])]
 
     if div64:
         logger.info("Get 1/64 split")
         sessions = df.drop_duplicates("session_id")
         sessions = sessions.assign(timestamp=pd.to_datetime(sessions["timestamp"]))
         sessions = sessions.sort_values("timestamp")[["session_id"]]
-        n = sessions.shape[0] // 64
+        n = sessions.shape[0] // 60  # div by 60 is closer to paper count
         sessions = sessions.iloc[-n:]
 
         df = df.merge(sessions, how="inner", on="session_id")[
@@ -187,21 +192,27 @@ def yoochoose(
         ]
         del sessions
 
-    df = df.sort_values("timestamp")[["session_id", "item_id"]]
+    df = df[["session_id", "item_id"]]
+    df_test = df_test[["session_id", "item_id"]]
     logger.info("Aggregate sessions")
     agg = df.groupby("session_id").agg(list)
+    agg_test = df_test.groupby("session_id").agg(list)
 
     logger.info("Avg length: {:.2f}".format(agg["item_id"].apply(len).mean()))
     del df
+    del df_test
 
     if return_agg:
         return agg
 
     language = Language(lower=False, remove_punctuation=False)
     ds = Dataset([r[1] for r in agg.itertuples()], language, **dataset_kwargs)
+    ds_test = Dataset([r[1] for r in agg_test.itertuples()], language, **dataset_kwargs)
 
     if cache:
         with open(cached_file, "wb") as f:
             pickle.dump(ds, f)
+        with open(os.path.join(storage_dir, "yoochoose-ds-test.pkl"), "wb") as f:
+            pickle.dump(ds_test, f)
 
     return ds, ds.language
