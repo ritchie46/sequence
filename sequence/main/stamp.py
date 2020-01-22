@@ -45,6 +45,7 @@ def main(args):
             tensorboard_writer=writer,
             global_step=global_step,
             callbacks=callbacks_,
+            scale_loss_by_lengths=args.scale_loss_by_lengths == 'true'
         )
 
         with open(os.path.join(artifact_dir, f"{e}.pkl"), "wb") as f:

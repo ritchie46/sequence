@@ -17,6 +17,7 @@ def run_epoch(
     global_step=0,
     n_batches=None,
     callbacks=[],
+    scale_loss_by_lengths=True,
 ):
     """
     Train one epoch.
@@ -37,6 +38,7 @@ def run_epoch(
         How many batches to run before epoch is regarded complete.
         Default = N / batch_size
     callbacks : list[function[**kwargs]]
+    scale_loss_by_lengths : bool
     """
     model.train()
     n_total = len(dataset)
@@ -53,7 +55,7 @@ def run_epoch(
 
         packed_padded, padded = dataset.get_batch(i, i + batch_size, device=device)
 
-        loss = det_loss(model, packed_padded)
+        loss = det_loss(model, packed_padded, scale_loss_by_lengths=scale_loss_by_lengths)
         backward(loss, optim)
         optim.step()
 

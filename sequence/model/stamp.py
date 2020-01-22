@@ -241,7 +241,7 @@ class AttentionNet(nn.Module):
         return torch.cumsum(applied, 0)
 
 
-def det_loss(model, packed_padded, test_loss=False):
+def det_loss(model, packed_padded, test_loss=False, scale_loss_by_lengths=True):
     # b,l,v
     y_hat = model(packed_padded)
 
@@ -249,6 +249,7 @@ def det_loss(model, packed_padded, test_loss=False):
     padded, lengths = torch.nn.utils.rnn.pad_packed_sequence(
         packed_padded, padding_value=-1
     )
+    lengths = lengths.to(device=padded.device)
     # The prediction and the target need to be offset.
     # input x_0:x_t prediction should be x_t+1
     # Therefore remove last prediction t_n, and remove first target t0.
@@ -270,8 +271,12 @@ def det_loss(model, packed_padded, test_loss=False):
     )
 
     # Divide every sequence loss by the length of the sequence
-    # and divide the overall loss by the batch size
-    loss = (loss.reshape(target.shape) / lengths.reshape(-1, 1)).sum() / target.shape[0]
+    if scale_loss_by_lengths:
+        print("DF")
+        loss = (loss.reshape(target.shape) / lengths.reshape(-1, 1))
+
+    # Divide the overall loss by the batch size
+    loss = loss.sum() / target.shape[0]
 
     if test_loss:
         loss_ = 0
