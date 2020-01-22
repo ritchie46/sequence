@@ -57,6 +57,7 @@ def trilinear_composition(h_s, h_t, x, einsum=True):
         # b,l,v
         return vlb.transpose(0, 2)
 
+
 def cumavg(a):
     """
 
@@ -208,7 +209,6 @@ class STAMP(STMP):
         return self._apply_from_m(m_s, m_t, return_all)
 
 
-
 class AttentionNet(nn.Module):
     def __init__(self, embedding_dim):
         super().__init__()
@@ -241,7 +241,7 @@ class AttentionNet(nn.Module):
         return torch.cumsum(applied, 0)
 
 
-def det_loss(model, packed_padded):
+def det_loss(model, packed_padded, test_loss=False):
     # b,l,v
     y_hat = model(packed_padded)
 
@@ -254,9 +254,38 @@ def det_loss(model, packed_padded):
     # Therefore remove last prediction t_n, and remove first target t0.
     y_hat = y_hat[:, :-1, :]
 
+    # b, l
     target = padded.T[:, 1:]
     target[target == 0] = -1
+    # -1 for the offset of 1
+    # -1 for mapping 0 to -1
+    lengths -= 2
+    batch_size = target.shape[0]
 
-    return F.nll_loss(
-        y_hat.reshape(-1, y_hat.shape[-1]), target.reshape(-1), ignore_index=-1
+    loss = F.nll_loss(
+        y_hat.reshape(-1, y_hat.shape[-1]),
+        target.reshape(-1),
+        ignore_index=-1,
+        reduction="none",
     )
+
+    # Divide every sequence loss by the length of the sequence
+    # and divide the overall loss by the batch size
+    loss = (loss.reshape(target.shape) / lengths.reshape(-1, 1)).sum() / target.shape[0]
+
+    if test_loss:
+        loss_ = 0
+
+        # loop over sequences
+        for i in range(target.shape[1] - 1):
+            loss_ += (
+                F.nll_loss(
+                    y_hat[:, i, :], target[:, i], ignore_index=-1, reduction="none"
+                )
+                / lengths
+            )
+
+        loss_ = loss_.sum() / batch_size
+        assert np.allclose(loss_.item(), loss.item())
+
+    return loss / target.shape[0]

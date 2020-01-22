@@ -118,3 +118,5 @@ def test_flow_stamp(language, dataset):
     with torch.no_grad():
         packed_padded, padded = dataset.get_batch(0, batch_size)
         m(packed_padded)
+
+    det_loss(m, packed_padded, test_loss=True)
