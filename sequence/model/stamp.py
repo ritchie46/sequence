@@ -57,6 +57,31 @@ def trilinear_composition(h_s, h_t, x, einsum=True):
         # b,l,v
         return vlb.transpose(0, 2)
 
+def cumavg(a):
+    """
+
+    Parameters
+    ----------
+    a : torch.tensor
+        Shape: l,b,e
+
+    Returns
+    -------
+    Cumulative average : torch.tensor
+        Shape : l,b,e
+        avg over l dimension
+    """
+    # l,b,e
+    cumsum = torch.cumsum(a, 0)
+    batch_size = cumsum.shape[1]
+
+    # Note that for the shorter sequences the cum avg is not correct
+    # after the last time step of that sequence.
+    # This is corrected in the loss calculation.
+    lengths = torch.arange(1, 1 + cumsum.shape[0], device=a.device)
+
+    return cumsum / lengths.reshape(cumsum.shape[0], 1, 1)
+
 
 class STMP(Embedding):
     """
@@ -120,24 +145,19 @@ class STMP(Embedding):
             emb, padding_value=0
         )
 
-        # l,b,e
-        cumsum = torch.cumsum(padded_emb, 0)
-        batch_size = cumsum.shape[1]
+        avg = cumavg(padded_emb)
+        # m_s, m_t
+        return avg, padded_emb
 
-        # Note that for the shorter sequences the cum avg is not correct
-        # after the last time step of that sequence.
-        # This is corrected in the loss calculation.
-        lengths = torch.arange(1, 1 + cumsum.shape[0], device=padded_emb.device)
-        return cumsum / lengths.reshape(cumsum.shape[0], 1, 1), padded_emb
-
-    def forward(self, x, return_all=False):
+    def m_s_m_t(self, x):
         # packed padded
         emb = self.apply_emb(x)
 
         # Rolling average session:
         #   m_s: l,b,e
-        m_s, m_t = self.external_memory(emb)
+        return self.external_memory(emb)
 
+    def _apply_from_m(self, m_s, m_t, return_all):
         # b,e
         h_s = self.mlp_a(m_s)
 
@@ -151,10 +171,74 @@ class STMP(Embedding):
         z = torch.sigmoid(trilinear_composition(h_s, h_t, x))
 
         if return_all:
-            return emb, m_s, m_t, h_s, h_t, x, z, torch.log_softmax(z, -1)
+            # packed padded
+            return m_s, m_t, h_s, h_t, x, z, torch.log_softmax(z, -1)
 
         # Softmax over v
         return torch.log_softmax(z, -1)
+
+    def forward(self, x, return_all=False):
+        # Rolling average session:
+        #   m_s: l,b,e
+        m_s, m_t = self.m_s_m_t(x)
+        return self._apply_from_m(m_s, m_t, return_all)
+
+
+class STAMP(STMP):
+    def __init__(
+        self,
+        vocabulary_size,
+        embedding_dim=10,
+        custom_embeddings=None,
+        nonlinearity="tanh",
+        mlp_layers=1,
+    ):
+        super().__init__(
+            vocabulary_size=vocabulary_size,
+            embedding_dim=embedding_dim,
+            custom_embeddings=custom_embeddings,
+            nonlinearity=nonlinearity,
+            mlp_layers=mlp_layers,
+        )
+        self.attention_net = AttentionNet(self.embedding_dim)
+
+    def forward(self, x, return_all=False):
+        m_s, m_t = self.m_s_m_t(x)
+        m_s = self.attention_net(m_t, m_s)
+        return self._apply_from_m(m_s, m_t, return_all)
+
+
+
+class AttentionNet(nn.Module):
+    def __init__(self, embedding_dim):
+        super().__init__()
+
+        # Only W3 has bias. Its bias serves as b_a
+        self.w1 = nn.Linear(embedding_dim, embedding_dim, bias=False)
+        self.w2 = nn.Linear(embedding_dim, embedding_dim, bias=False)
+        self.w3 = nn.Linear(embedding_dim, embedding_dim)
+        self.w0 = nn.Linear(embedding_dim, 1, bias=False)
+
+    def forward(self, emb, m_s):
+        """
+
+        Parameters
+        ----------
+        emb : torch.tensor
+            Shape: l,b,e
+        m_s : torch.tensor
+            Shape: l,b,e
+
+        Returns
+        -------
+
+        """
+        # l,b,1
+        a = self.w0(torch.sigmoid(self.w1(emb) + self.w2(emb) + self.w3(m_s)))
+        # l,b,e
+        applied = a * emb
+
+        return torch.cumsum(applied, 0)
 
 
 def det_loss(model, packed_padded):

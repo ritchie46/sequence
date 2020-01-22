@@ -123,6 +123,7 @@ def yoochoose(
         if os.path.isfile(cached_file):
             with open(cached_file, "rb") as f:
                 ds = pickle.load(f)
+                ds.data = ds.data.rechunk('auto')
             return ds, ds.language
 
     if test:

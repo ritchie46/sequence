@@ -1,6 +1,6 @@
 import torch
 from sequence.test import language, words, dataset, paths
-from sequence.model.stamp import STMP, trilinear_composition, det_loss
+from sequence.model.stamp import STMP, trilinear_composition, det_loss, STAMP
 import numpy as np
 
 
@@ -11,7 +11,7 @@ def test_flow(language, dataset):
 
     with torch.no_grad():
         packed_padded, padded = dataset.get_batch(0, batch_size)
-        emb, m_s, m_t, h_s, h_t, x, z, y_hat = m(packed_padded, return_all=True)
+        m_s, m_t, h_s, h_t, x, z, y_hat = m(packed_padded, return_all=True)
 
         assert m_s.shape == m_t.shape
         assert np.allclose(m_s[0, 0, :], m_t[0, 0, :])
@@ -66,14 +66,9 @@ def test_trilinear_composition():
     # seq2: 4, 5, 6
     #       4, 5, 6
 
-    h_t = torch.tensor([[[1, 1],
-                        [4, 4]],
-
-                        [[2, 2],
-                        [5, 5]],
-
-                        [[3, 3],
-                         [6, 6]]], dtype=float)
+    h_t = torch.tensor(
+        [[[1, 1], [4, 4]], [[2, 2], [5, 5]], [[3, 3], [6, 6]]], dtype=float
+    )
 
     # h_s = cumulative average
 
@@ -93,12 +88,10 @@ def test_trilinear_composition():
     lengths = torch.arange(1, 1 + cumsum.shape[0])
     h_s = cumsum / lengths.reshape(cumsum.shape[0], 1, 1)
 
-    assert np.all(np.isclose(h_s[:, 0, 0], np.array([1., 1.5, 2.])))
+    assert np.all(np.isclose(h_s[:, 0, 0], np.array([1.0, 1.5, 2.0])))
 
     # vocabulary can go to 6
-    x = torch.tensor([[1, 1],
-                      [2, 2],
-                      [3, 3]], dtype=float)
+    x = torch.tensor([[1, 1], [2, 2], [3, 3]], dtype=float)
 
     # b,l,v
     a = trilinear_composition(h_s, h_t, x)
@@ -116,3 +109,12 @@ def test_trilinear_composition():
     x_i = np.array([3, 3])
     assert np.isclose(np.dot(h_s, (h_t * x_i)), a[1, 2, 2])
 
+
+def test_flow_stamp(language, dataset):
+    torch.manual_seed(0)
+    m = STAMP(language.vocabulary_size, embedding_dim=2)
+    batch_size = 3
+
+    with torch.no_grad():
+        packed_padded, padded = dataset.get_batch(0, batch_size)
+        m(packed_padded)

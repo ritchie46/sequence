@@ -1,4 +1,4 @@
-from sequence.model.stamp import STMP
+from sequence.model.stamp import STMP, STAMP
 import os
 from sequence.train.stamp import run_epoch
 from sequence.main import generic
@@ -9,21 +9,22 @@ def main(args):
     name = f"e{args.embedding_dim}"
     artifact_dir, tb_dir = generic.create_dirs(args, name)
     dataset, language = generic.load_dataset(args)
-
+    model_args = dict(
+        vocabulary_size=language.vocabulary_size,
+        embedding_dim=args.embedding_dim,
+        nonlinearity=args.nonlinearity,
+    )
     if args.model == "stmp":
         cls = STMP
         name = args.logging_name if args.logging_name is not None else "stmp"
     else:
-        raise NotImplementedError("STAMP is coming up")
+        cls = STAMP
+
     model_registry = generic.load_model_registry(
         args,
         cls,
         name,
-        **dict(
-            vocabulary_size=language.vocabulary_size,
-            embedding_dim=args.embedding_dim,
-            nonlinearity=args.nonlinearity,
-        ),
+        **model_args
     )
 
     optim = generic.init_optimizer(args, model_registry)
