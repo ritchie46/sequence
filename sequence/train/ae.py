@@ -1,6 +1,8 @@
 import logging
 from sequence.model.seq2seq import det_loss, det_loss_batched
 from sequence.utils import backward
+from sequence.callbacks import apply as apply_callbacks
+
 
 logger = logging.getLogger(__name__)
 
@@ -49,6 +51,7 @@ def run_epoch(
 
     c = 0
     for i in range(n_batches):
+        epoch_p = i / (n_batches - 1)
         c += 1
         optim.zero_grad()
         i = i * batch_size
@@ -78,6 +81,15 @@ def run_epoch(
         if tensorboard_writer is not None:
             tensorboard_writer.add_scalar("Loss", loss.item())
 
-        [f(global_step=global_step, loss=loss, epoch=epoch) for f in callbacks]
+        apply_callbacks(
+            callbacks,
+            global_step=global_step,
+            loss=loss,
+            model=model,
+            ds_train=dataset,
+            logger=logger,
+            device=device,
+            epoch_p=epoch_p,
+        )
 
     logger.debug("Epoch: {}\tLoss{:.4f}".format(epoch, loss.item()))

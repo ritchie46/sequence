@@ -272,7 +272,6 @@ def det_loss(model, packed_padded, test_loss=False, scale_loss_by_lengths=True):
 
     # Divide every sequence loss by the length of the sequence
     if scale_loss_by_lengths:
-        print("DF")
         loss = (loss.reshape(target.shape) / lengths.reshape(-1, 1))
 
     # Divide the overall loss by the batch size

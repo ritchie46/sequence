@@ -2,6 +2,8 @@ import logging
 from sequence.model.vae import det_neg_elbo
 import torch
 from sequence.utils import backward
+from sequence.callbacks import apply as apply_callbacks
+
 
 logger = logging.getLogger(__name__)
 
@@ -52,6 +54,7 @@ def run_epoch(
 
     c = 0
     for i in range(n_batches):
+        epoch_p = i / (n_batches - 1)
         global_step += 1
         c += 1
         optim.zero_grad()
@@ -72,7 +75,12 @@ def run_epoch(
         if global_step % 10 == 0:
             logger.info(
                 "{}/{}\t{}%\tEpoch: {} Loss: {:.4f}\tAnneal factor: {:.3f}".format(
-                    c, n_batches, int(c / n_batches * 100), epoch, loss.item(), anneal_factor
+                    c,
+                    n_batches,
+                    int(c / n_batches * 100),
+                    epoch,
+                    loss.item(),
+                    anneal_factor,
                 )
             )
 
@@ -85,15 +93,16 @@ def run_epoch(
                     "Anneal_factor", anneal_factor, global_step
                 )
 
-        [
-            f(
-                global_step=global_step,
-                loss=loss,
-                epoch=epoch,
-                model=model,
-            )
-            for f in callbacks
-        ]
+        apply_callbacks(
+            callbacks,
+            global_step=global_step,
+            loss=loss,
+            model=model,
+            ds_train=dataset,
+            logger=logger,
+            device=device,
+            epoch_p=epoch_p,
+        )
 
     logger.debug("Epoch: {}\tLoss{:.4f}".format(epoch, loss.item()))
     return global_step

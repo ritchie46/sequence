@@ -2,6 +2,7 @@ import logging
 from sequence.model.stamp import det_loss
 import torch
 from sequence.utils import backward
+from sequence.callbacks import apply as apply_callbacks
 
 logger = logging.getLogger(__name__)
 
@@ -48,6 +49,7 @@ def run_epoch(
 
     c = 0
     for i in range(n_batches):
+        epoch_p = i / (n_batches - 1)
         global_step += 1
         c += 1
         optim.zero_grad()
@@ -55,7 +57,9 @@ def run_epoch(
 
         packed_padded, padded = dataset.get_batch(i, i + batch_size, device=device)
 
-        loss = det_loss(model, packed_padded, scale_loss_by_lengths=scale_loss_by_lengths)
+        loss = det_loss(
+            model, packed_padded, scale_loss_by_lengths=scale_loss_by_lengths
+        )
         backward(loss, optim)
         optim.step()
 
@@ -69,10 +73,16 @@ def run_epoch(
             if tensorboard_writer is not None:
                 tensorboard_writer.add_scalar("Loss", loss.item(), global_step)
 
-        [
-            f(global_step=global_step, loss=loss, epoch=epoch, model=model,)
-            for f in callbacks
-        ]
+        apply_callbacks(
+            callbacks,
+            global_step=global_step,
+            loss=loss,
+            model=model,
+            ds_train=dataset,
+            logger=logger,
+            device=device,
+            epoch_p=epoch_p,
+        )
 
     logger.debug("Epoch: {}\tLoss{:.4f}".format(epoch, loss.item()))
     return global_step
