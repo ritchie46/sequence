@@ -82,6 +82,7 @@ def run_epoch(
             logger=logger,
             device=device,
             epoch_p=epoch_p,
+            tensorboard_writer=tensorboard_writer,
         )
 
     logger.debug("Epoch: {}\tLoss{:.4f}".format(epoch, loss.item()))

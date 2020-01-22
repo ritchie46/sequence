@@ -15,6 +15,7 @@ def apply(
     logger=None,
     device=None,
     epoch_p=None,
+tensorboard_writer=None,
 ):
     """
     epoch_p : float
@@ -88,7 +89,7 @@ def log_ranking_metrics(n, k):
         p_at_k_ = []
         mrr_ = []
         for i in range(n):
-            packed_padded, padded = ds.get_batch(i * 100, i * 100 + 100, device=device)
+            packed_padded, padded = ds.get_batch(i * n, i * n + n, device=device)
 
             with torch.no_grad():
                 pred = model(packed_padded)
@@ -100,8 +101,13 @@ def log_ranking_metrics(n, k):
             p_at_k_.append(p_at_k)
             mrr_.append(mrr)
 
+        p_at_k = np.mean(p_at_k_)
+        mrr = np.mean(mrr_)
         logger.info(
-            "P@{}: {:.3f}, MRR: {:.3f}".format(k, np.mean(p_at_k_), np.mean(mrr_))
+            "P@{}: {:.3f}, MRR: {:.3f}".format(k, p_at_k, mrr)
         )
+        if kwargs["tensorboard_writer"]:
+            kwargs["tensorboard_writer"].add_scalar(f"p@{k}", p_at_k)
+            kwargs["tensorboard_writer"].add_scalar(f"MRR@{k}", mrr)
 
     return callback
