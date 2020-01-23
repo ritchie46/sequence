@@ -89,7 +89,7 @@ def log_ranking_metrics(n, k):
         mrr = np.mean(mrr_)
         logger.info("P@{}: {:.3f}, MRR: {:.3f}".format(k, p_at_k, mrr))
         if kwargs["tensorboard_writer"]:
-            kwargs["tensorboard_writer"].add_scalar(f"p_at_k{k}", p_at_k)
-            kwargs["tensorboard_writer"].add_scalar(f"MRR_at_{k}", mrr)
+            kwargs["tensorboard_writer"].add_scalar(f"p_at_k{k}", p_at_k, kwargs.get("global_step", 0))
+            kwargs["tensorboard_writer"].add_scalar(f"MRR_at_{k}", mrr, kwargs.get("global_step", 0))
 
     return callback
