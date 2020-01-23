@@ -292,4 +292,7 @@ def det_loss(model, packed_padded, test_loss=False, scale_loss_by_lengths=True):
         loss_ = loss_.sum() / batch_size
         assert np.allclose(loss_.item(), loss.item())
 
+    if not scale_loss_by_lengths:
+        loss / target.shape[0] * lengths.mean()
+
     return loss / target.shape[0]
