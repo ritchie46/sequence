@@ -15,10 +15,14 @@ def main(args):
         embedding_dim=args.embedding_dim,
         nonlinearity=args.nonlinearity,
     )
+    name = args.logging_name
     if args.model == "stmp":
         cls = STMP
-        name = args.logging_name if args.logging_name is not None else "stmp"
+        if name is None:
+            name = "stmp"
     else:
+        if name is None:
+            name = "stamp"
         cls = STAMP
 
     model_registry = generic.load_model_registry(
