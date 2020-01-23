@@ -1,4 +1,5 @@
 import numpy as np
+import dask
 import torch
 import dask.array as da
 from torch.utils.data import Dataset as ds
@@ -91,22 +92,24 @@ class Dataset(ds):
         sentences,
         language=None,
         skip=(),
-        chunk_size=int(1e4),
+        buffer_size=int(1e4),
         max_len=None,
         min_len=1,
         device="cpu",
+        chunk_size="auto",
     ):
         self.skip = set(skip)
         self.data = np.array([[]])
         self.max_len = max_len
         self.min_len = min_len
-        self.chunk_size = chunk_size
+        self.buffer_size = buffer_size
         # used for shuffling
         self.idx = None
         self.language = Language() if language is None else language
         if sentences is not None:
             self.transform_data(sentences)
         self.device = device
+        self.chunk_size = chunk_size
 
     def transform_sentence(self, s):
         """
@@ -141,7 +144,7 @@ class Dataset(ds):
         idx[i + 1] = 0
         return np.array(idx)
 
-    def transform_data(self, paths, max_len=None):
+    def transform_data(self, paths):
         """
         The sentences containing of string values will be
         transformed to a dask dataframe as integers.
@@ -153,28 +156,45 @@ class Dataset(ds):
         max_len : int
             Maximum length to use in the dataset.
         """
-        if max_len is None:
-            max_len = max(map(len, paths))
-        self.max_len = max_len
+        if self.max_len is None:
+            self.max_len = max(map(len, paths))
 
         size = len(paths)
-        for i, j in zip(
-            range(0, size, self.chunk_size),
-            range(self.chunk_size, size + self.chunk_size, self.chunk_size),
-        ):
+
+        # https://blog.dask.org/2019/06/20/load-image-data
+        def gen(i, j):
+            """
+            Note: Function has one time side effect due
+            to self.transform_sentence
+            """
             j = min(size, j)
 
             # Sentences to integers
             a = np.array(list(map(self.transform_sentence, paths[i:j])), dtype=np.int32)
+            return a
 
-            # Remove empty sequences jit. Because of -1 padding sum == max_len + 1
-            mask = np.sum(a, 1) == -(self.max_len + 1)
-            a = a[~mask]
+        lazy_a = []
+        for i, j in zip(
+                range(0, size, self.buffer_size),
+                range(self.buffer_size, size + self.buffer_size, self.buffer_size),
+        ):
+            lazy_a.append(dask.delayed(gen)(i, j))
 
-            self.data = da.concatenate([self.data, a], axis=0)
+        lazy_a = [da.from_delayed(x, shape=(self.buffer_size, self.max_len + 1,), dtype=np.int32) for x in lazy_a]
 
+        self.data = da.concatenate(lazy_a)
+
+        # Because of transformation conditions there can be empty sequences
+        # These need to be removed.
+
+        # The actual computed values are a bit shorter.
+        # Because the data rows % buffer_size has a remainder.
+        mask_short = self.data.sum(-1).compute() == -(self.max_len + 1)
+        mask = np.ones(shape=(self.data.shape[0],), dtype=bool)
+        mask[:mask_short.shape[0]] = mask_short
+
+        self.data = self.data[~mask]
         self.data = self.data.persist()
-        self.data = self.data.rechunk('auto')
         self.set_idx()
 
     def shuffle(self):
