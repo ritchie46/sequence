@@ -4,37 +4,21 @@ import torch
 import numpy as np
 
 
-def apply(
-    callbacks,
-    global_step=None,
-    loss=None,
-    epoch=None,
-    model=None,
-    ds_train=None,
-    ds_test=None,
-    logger=None,
-    device=None,
-    epoch_p=None,
-tensorboard_writer=None,
-):
+def apply(callbacks, **kwargs):
     """
+    global_step : int
+    loss : float
+    epoch : int
+    model :
+    ds_train :
+    ds_test :
+    logger :
+    device : str
     epoch_p : float
+    tensorboard_writer :
         Percentage done of epoch
     """
-    [
-        f(
-            global_step=global_step,
-            loss=loss,
-            epoch=epoch,
-            model=model,
-            ds_train=ds_train,
-            ds_test=ds_test,
-            logger=logger,
-            device=device,
-            epoch_p=epoch_p
-        )
-        for f in callbacks
-    ]
+    [f(**kwargs) for f in callbacks]
 
 
 def save_every_n_steps(n, mr=None, dump_dir="artifacts"):
@@ -79,7 +63,7 @@ def register_global_step(mr):
 
 def log_ranking_metrics(n, k):
     def callback(**kwargs):
-        if kwargs['epoch_p'] != 0:
+        if kwargs["epoch_p"] != 0:
             return
         model = kwargs["model"]
         ds = kwargs["ds_train"]
@@ -89,7 +73,7 @@ def log_ranking_metrics(n, k):
         p_at_k_ = []
         mrr_ = []
         for i in range(n):
-            packed_padded, padded = ds.get_batch(i * n, i * n + n, device=device)
+            packed_padded, padded = ds.get_batch(i * 100, i * 100 + 100, device=device)
 
             with torch.no_grad():
                 pred = model(packed_padded)
@@ -103,11 +87,9 @@ def log_ranking_metrics(n, k):
 
         p_at_k = np.mean(p_at_k_)
         mrr = np.mean(mrr_)
-        logger.info(
-            "P@{}: {:.3f}, MRR: {:.3f}".format(k, p_at_k, mrr)
-        )
+        logger.info("P@{}: {:.3f}, MRR: {:.3f}".format(k, p_at_k, mrr))
         if kwargs["tensorboard_writer"]:
-            kwargs["tensorboard_writer"].add_scalar(f"p@{k}", p_at_k)
-            kwargs["tensorboard_writer"].add_scalar(f"MRR@{k}", mrr)
+            kwargs["tensorboard_writer"].add_scalar(f"p_at_k{k}", p_at_k)
+            kwargs["tensorboard_writer"].add_scalar(f"MRR_at_{k}", mrr)
 
     return callback

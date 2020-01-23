@@ -34,7 +34,7 @@ def main(args):
     callbacks_ = generic.init_callbacks(args, model_registry, artifact_dir)
     global_step = generic.init_global_step(args, model_registry)
     device = generic.init_device(args, model_registry)
-    callbacks_.append(log_ranking_metrics(20, 20))
+    callbacks_.append(log_ranking_metrics(50, k=20))
 
     for e in range(args.epochs):
         global_step = run_epoch(
