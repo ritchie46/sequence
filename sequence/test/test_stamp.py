@@ -1,6 +1,6 @@
 import torch
 from sequence.test import language, words, dataset, paths
-from sequence.model.stamp import STMP, trilinear_composition, det_loss, STAMP
+from sequence.model.stamp import STMP, trilinear_composition, det_loss, STAMP, AttentionNet
 import numpy as np
 
 
@@ -120,3 +120,35 @@ def test_flow_stamp(language, dataset):
         m(packed_padded)
 
     det_loss(m, packed_padded, test_loss=True)
+
+
+def test_attention():
+    torch.manual_seed(0)
+    # Attention head for embedding size of 2
+    att = AttentionNet(2)
+
+    # Two sessions s1, and s2
+    s1 = torch.tensor([[1, 1],
+                      [2, 2],
+                      [3, 3]], dtype=torch.float)
+
+    s2 = torch.tensor([[0.5, 0.5],
+                    [1.5, 1.5],
+                    [2.5, 2.5]])
+
+    m_s = s1.sum(0)
+
+    # Paper STAMP eq. 7
+    # compute a_0
+    x_0 = s1[0, :]
+
+    x_t = s1[-1, :]
+    a_0 = att.w0(torch.sigmoid(att.w1(x_0) + att.w2(x_t) + att.w3(m_s)))
+
+    # Now for a batch
+    # l, b, e
+    e = torch.stack([s1, s2], dim=1)
+
+    _, ai = att(e, return_attention_factors=True)
+    assert ai[-1][0, 0] == a_0
+

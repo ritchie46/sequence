@@ -204,8 +204,8 @@ class STAMP(STMP):
         self.attention_net = AttentionNet(self.embedding_dim)
 
     def forward(self, x, return_all=False):
-        m_s, m_t = self.m_s_m_t(x)
-        m_s = self.attention_net(m_t, m_s)
+        _, m_t = self.m_s_m_t(x)
+        m_s = self.attention_net(m_t)
         return self._apply_from_m(m_s, m_t, return_all)
 
 
@@ -219,7 +219,7 @@ class AttentionNet(nn.Module):
         self.w3 = nn.Linear(embedding_dim, embedding_dim)
         self.w0 = nn.Linear(embedding_dim, 1, bias=False)
 
-    def forward(self, emb, m_s):
+    def forward(self, emb, return_attention_factors=False):
         """
 
         Parameters
@@ -233,12 +233,37 @@ class AttentionNet(nn.Module):
         -------
 
         """
-        # l,b,1
-        a = self.w0(torch.sigmoid(self.w1(emb) + self.w2(emb) + self.w3(m_s)))
-        # l,b,e
-        applied = a * emb
+        # loop over lengths
+        # So results for whole batch
+        m_a = []
+        a_is = []
+        for i in range(emb.shape[0]):
+            # one,b,e
+            x_t = emb[i, ...].unsqueeze(0)
 
-        return torch.cumsum(applied, 0)
+            # i + 1, b, e
+            x_i = emb[:i + 1, ...]
+
+            m_s_ = x_i.sum(0).unsqueeze(0)
+
+            # i + 1, b, e
+            # Attention factors. The lenth of this tensor
+            # changes dependend on current t
+            a_i = self.w0(torch.sigmoid(self.w1(x_i) + self.w2(x_t) + self.w3(m_s_)))
+
+            if return_attention_factors:
+                a_is.append(a_i)
+
+            # one, b, e
+            m_a.append(torch.sum(a_i * x_i, 0).unsqueeze(0))
+
+        # l, b, e
+        m_a = torch.cat(m_a, dim=0)
+
+        if return_attention_factors:
+            return m_a, a_is
+
+        return m_a
 
 
 def det_loss(model, packed_padded, test_loss=False, scale_loss_by_lengths=True):
@@ -293,6 +318,6 @@ def det_loss(model, packed_padded, test_loss=False, scale_loss_by_lengths=True):
         assert np.allclose(loss_.item(), loss.item())
 
     if not scale_loss_by_lengths:
-        loss / target.shape[0] * lengths.mean()
+        loss / target.shape[0]
 
     return loss / target.shape[0]
