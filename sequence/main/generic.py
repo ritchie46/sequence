@@ -22,8 +22,8 @@ def load_dataset(args):
         fn = "NLTK " + fn
         dataset, language = datasets.brown(dataset_kwargs)
     elif fn == "Yoochoose 1/64":
-        dataset_kwargs['min_len'] = 1
-        dataset_kwargs['max_len'] = 1e9
+        dataset_kwargs["min_len"] = 1
+        dataset_kwargs["max_len"] = 1e9
         dataset, language = datasets.yoochoose(
             args.storage_dir, div64=True, dataset_kwargs=dataset_kwargs
         )
@@ -101,6 +101,15 @@ def init_device(args, model_registry):
 
 
 def init_optimizer(args, model_registry):
-    return torch.optim.Adam(
-        model_registry.model_.parameters(), lr=args.lr, weight_decay=args.weight_decay
-    )
+    if args.optimizer == "adam":
+        return torch.optim.Adam(
+            model_registry.model_.parameters(),
+            lr=args.lr,
+            weight_decay=args.weight_decay,
+        )
+    else:
+        return torch.optim.SGD(
+            model_registry.model_.parameters(),
+            lr=args.lr,
+            weight_decay=args.weight_decay,
+        )

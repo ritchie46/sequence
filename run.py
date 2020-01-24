@@ -40,6 +40,12 @@ if __name__ == "__main__":
         help="Path to existing ModelRegistry",
         dest="model_registry_path",
     )
+    parser.add_argument(
+        "--optimizer",
+        type=str,
+        default="adam",
+        help="adam|sgd"
+    )
 
     # VAE
     vae_parser = subparsers.add_parser(
