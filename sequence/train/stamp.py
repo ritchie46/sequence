@@ -56,10 +56,15 @@ def run_epoch(
         optim.zero_grad()
         i = i * batch_size
 
-        packed_padded, padded = dataset_train.get_batch(i, i + batch_size, device=device)
+        packed_padded, padded = dataset_train.get_batch(
+            i, i + batch_size, device=device
+        )
 
         loss = det_loss(
-            model, packed_padded, scale_loss_by_lengths=scale_loss_by_lengths
+            model,
+            packed_padded,
+            scale_loss_by_lengths=scale_loss_by_lengths,
+            max_len=dataset_train.max_len,
         )
         backward(loss, optim)
         optim.step()

@@ -266,7 +266,7 @@ class AttentionNet(nn.Module):
         return m_a
 
 
-def det_loss(model, packed_padded, test_loss=False, scale_loss_by_lengths=True):
+def det_loss(model, packed_padded, test_loss=False, scale_loss_by_lengths=True, max_len=1.):
     # b,l,v
     y_hat = model(packed_padded)
 
@@ -318,6 +318,6 @@ def det_loss(model, packed_padded, test_loss=False, scale_loss_by_lengths=True):
         assert np.allclose(loss_.item(), loss.item())
 
     if not scale_loss_by_lengths:
-        loss / target.shape[0]
+        loss = loss / (target.shape[0] * lengths.to(loss.dtype).mean()) * max_len * 100
 
     return loss / target.shape[0]

@@ -102,12 +102,14 @@ def init_device(args, model_registry):
 
 def init_optimizer(args, model_registry):
     if args.optimizer == "adam":
+        logger.info("Using adam optimizer")
         return torch.optim.Adam(
             model_registry.model_.parameters(),
             lr=args.lr,
             weight_decay=args.weight_decay,
         )
     else:
+        logger.info("Using sgd optimizer")
         return torch.optim.SGD(
             model_registry.model_.parameters(),
             lr=args.lr,
