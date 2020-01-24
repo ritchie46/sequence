@@ -8,7 +8,7 @@ from sequence.main import generic
 def main(args):
     name = f"z{args.latent_size}-h{args.hidden_size}-e{args.embedding_dim}-wd{args.word_dropout}"
     artifact_dir, tb_dir = generic.create_dirs(args, name)
-    dataset, language = generic.load_dataset(args)
+    dataset_train, dataset_test, language = generic.load_dataset(args)
     model_registry = generic.load_model_registry(
         args,
         VAE,
@@ -30,7 +30,7 @@ def main(args):
     device = generic.init_device(args, model_registry)
 
     def anneal_f(i):
-        pct = i / (len(dataset) * args.annealing_epochs) * args.batch_size
+        pct = i / (len(dataset_train) * args.annealing_epochs) * args.batch_size
         return annealing_sigmoid(0, 1, pct)
 
     for e in range(args.epochs):
@@ -38,7 +38,7 @@ def main(args):
             e,
             model_registry.model_,
             optim,
-            dataset,
+            dataset_train,
             args.batch_size,
             word_dropout=args.word_dropout,
             device=device,

@@ -9,7 +9,7 @@ def main(args):
 
     name = f"e{args.embedding_dim}"
     artifact_dir, tb_dir = generic.create_dirs(args, name)
-    dataset, language = generic.load_dataset(args)
+    dataset_train, dataset_test, language = generic.load_dataset(args)
     model_args = dict(
         vocabulary_size=language.vocabulary_size,
         embedding_dim=args.embedding_dim,
@@ -45,7 +45,8 @@ def main(args):
             e,
             model_registry.model_,
             optim,
-            dataset,
+            dataset_train,
+            dataset_test,
             args.batch_size,
             device=device,
             tensorboard_writer=writer,

@@ -66,30 +66,30 @@ def log_ranking_metrics(n, k):
         if kwargs["epoch_p"] != 0:
             return
         model = kwargs["model"]
-        ds = kwargs["ds_train"]
         logger = kwargs["logger"]
         device = kwargs["device"]
 
-        p_at_k_ = []
-        mrr_ = []
-        for i in range(n):
-            packed_padded, padded = ds.get_batch(i * 100, i * 100 + 100, device=device)
+        for name, ds in zip(['train', 'test'], [kwargs["ds_train"], kwargs["ds_test"]]):
+            p_at_k_ = []
+            mrr_ = []
+            for i in range(n):
+                packed_padded, padded = ds.get_batch(i * 100, i * 100 + 100, device=device)
 
-            with torch.no_grad():
-                pred = model(packed_padded)
+                with torch.no_grad():
+                    pred = model(packed_padded)
 
-            target = padded.T[:, 1:]
-            p_at_k, mrr = metrics.rank_scores(
-                pred.cpu(), target.cpu(), k=k, skip_first_k=0
-            )
-            p_at_k_.append(p_at_k)
-            mrr_.append(mrr)
+                target = padded.T[:, 1:]
+                p_at_k, mrr = metrics.rank_scores(
+                    pred.cpu(), target.cpu(), k=k, skip_first_k=0
+                )
+                p_at_k_.append(p_at_k)
+                mrr_.append(mrr)
 
-        p_at_k = np.mean(p_at_k_)
-        mrr = np.mean(mrr_)
-        logger.info("P@{}: {:.3f}, MRR: {:.3f}".format(k, p_at_k, mrr))
-        if kwargs["tensorboard_writer"]:
-            kwargs["tensorboard_writer"].add_scalar(f"p_at_k{k}", p_at_k, kwargs.get("global_step", 0))
-            kwargs["tensorboard_writer"].add_scalar(f"MRR_at_{k}", mrr, kwargs.get("global_step", 0))
+            p_at_k = np.mean(p_at_k_)
+            mrr = np.mean(mrr_)
+            logger.info("P@{}: {:.3f}, MRR: {:.3f}".format(k, p_at_k, mrr))
+            if kwargs["tensorboard_writer"]:
+                kwargs["tensorboard_writer"].add_scalar(f"p_at_k_{name}_{k}", p_at_k, kwargs.get("global_step", 0))
+                kwargs["tensorboard_writer"].add_scalar(f"MRR_at_{name}_{k}", mrr, kwargs.get("global_step", 0))
 
     return callback

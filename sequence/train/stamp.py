@@ -11,7 +11,8 @@ def run_epoch(
     epoch,
     model,
     optim,
-    dataset,
+    dataset_train,
+    dataset_test,
     batch_size,
     device="cpu",
     tensorboard_writer=None,
@@ -28,7 +29,7 @@ def run_epoch(
     epoch : int
     model : torch.nn.Module
     optim : torch.Optimizer
-    dataset : sequence.data.utils.Dataset
+    dataset_train : sequence.data.utils.Dataset
     batch_size : int
     device : str
         "cpu" or "cuda"
@@ -42,8 +43,8 @@ def run_epoch(
     scale_loss_by_lengths : bool
     """
     model.train()
-    n_total = len(dataset)
-    dataset.shuffle()
+    n_total = len(dataset_train)
+    dataset_train.shuffle()
     if n_batches is None:
         n_batches = n_total // batch_size
 
@@ -55,7 +56,7 @@ def run_epoch(
         optim.zero_grad()
         i = i * batch_size
 
-        packed_padded, padded = dataset.get_batch(i, i + batch_size, device=device)
+        packed_padded, padded = dataset_train.get_batch(i, i + batch_size, device=device)
 
         loss = det_loss(
             model, packed_padded, scale_loss_by_lengths=scale_loss_by_lengths
@@ -78,7 +79,8 @@ def run_epoch(
             global_step=global_step,
             loss=loss,
             model=model,
-            ds_train=dataset,
+            ds_train=dataset_train,
+            ds_test=dataset_test,
             logger=logger,
             device=device,
             epoch_p=epoch_p,

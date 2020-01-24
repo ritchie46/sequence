@@ -33,11 +33,11 @@ def load_dataset(args):
             language = dataset.language
 
     logger.info(f"Using {fn} dataset")
-    dataset, _ = dataset.split(
+    dataset_train, dataset_test = dataset.split(
         [args.train_percentage, 1 - args.train_percentage], shuffle=False
     )
     logging.info(f"VOCABULARY SIZE: {language.vocabulary_size}")
-    return dataset, language
+    return dataset_train, dataset_test, language
 
 
 def load_model_registry(args, cls, name, **kwargs):
