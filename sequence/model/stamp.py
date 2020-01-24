@@ -169,7 +169,10 @@ class STMP(Embedding):
         x = self.emb.weight
 
         # b,l,v
-        z = torch.sigmoid(trilinear_composition(h_s, h_t, x))
+        # Sigmoid is only for a single index!!
+        # Applying the sigmoid saturates the softmax. Leading to poor results.
+        # Paper should have taken another notation!
+        z = trilinear_composition(h_s, h_t, x)
 
         if return_all:
             # packed padded
