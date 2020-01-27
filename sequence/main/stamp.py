@@ -7,14 +7,6 @@ from sequence.callbacks import log_ranking_metrics
 
 def main(args):
 
-    name = f"e{args.embedding_dim}"
-    artifact_dir, tb_dir = generic.create_dirs(args, name)
-    dataset_train, dataset_test, language = generic.load_dataset(args)
-    model_args = dict(
-        vocabulary_size=language.vocabulary_size,
-        embedding_dim=args.embedding_dim,
-        nonlinearity=args.nonlinearity,
-    )
     name = args.logging_name
     if args.model == "stmp":
         cls = STMP
@@ -24,6 +16,13 @@ def main(args):
         if name is None:
             name = "stamp"
         cls = STAMP
+    artifact_dir, tb_dir = generic.create_dirs(args, name)
+    dataset_train, dataset_test, language = generic.load_dataset(args)
+    model_args = dict(
+        vocabulary_size=language.vocabulary_size,
+        embedding_dim=args.embedding_dim,
+        nonlinearity=args.nonlinearity,
+    )
 
     model_registry = generic.load_model_registry(
         args,
