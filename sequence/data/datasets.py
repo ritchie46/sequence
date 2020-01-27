@@ -27,6 +27,7 @@ def brown(dataset_kwargs={}):
                     sequence.data.utils.Language
                     ]
     """
+    # TODO: Fix with dask
     nltk.download("brown")
     ds = Dataset(nltk.corpus.brown.sents(), **dataset_kwargs)
     return ds, ds.language

@@ -23,7 +23,7 @@ def load_dataset(args):
         dataset, language = datasets.brown(dataset_kwargs)
     elif fn == "Yoochoose 1/64":
         dataset_kwargs["min_len"] = 1
-        dataset_kwargs["max_len"] = 1e9
+        dataset_kwargs["max_len"] = None
         dataset, language = datasets.yoochoose(
             args.storage_dir, div64=True, dataset_kwargs=dataset_kwargs
         )
