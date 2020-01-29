@@ -39,6 +39,52 @@ $ python run.py stamp \
 [See paper](https://arxiv.org/pdf/1511.06349.pdf)
 ![vae_model](img/vae.png)
 
+## Creating a dataset
+A dataset can be created from custom data and passed as path to a pickled file to the argument parser.
+
+```python
+from sequence.data.utils import Dataset
+import pickle
+import pandas as pd
+
+df = pd.DataFrame({"sessions": ["ses_1", "ses_2", "ses_1", "ses_1", "ses_1", "ses_2"],
+              "pages": ["foo", "bar", "spam", "eggs", "spam", "home"]
+             })
+df
+```
+
+|sessions|pages|
+|--- |--- |
+|ses_1|foo|
+|ses_2|bar|
+|ses_1|spam|
+|ses_1|eggs|
+|ses_1|spam|
+|ses_2|home|
+
+```python
+grouped = df.groupby("sessions").agg(list)
+grouped
+```
+
+|pages|
+|--- |
+|[foo, spam, eggs, spam]|
+|[bar, home]|
+
+```python
+dataset = Dataset(
+    sentences=[path for path in grouped["pages"]],
+    min_len=1,
+    max_len=20
+)
+
+with open("somepath.pkl", "wb") as f:
+    pickle.dump(dataset, f)
+```
+
+And then running a model w/: `$ python run.py stamp --dataset='somepath.pkl'`
+
 ## Options
 
 ```text
