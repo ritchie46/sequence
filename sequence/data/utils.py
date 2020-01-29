@@ -144,6 +144,18 @@ class Dataset(ds):
         idx[i + 1] = 0
         return np.array(idx)
 
+    # https://blog.dask.org/2019/06/20/load-image-data
+    def gen(self, i, j, size, paths):
+        """
+        Note: Function has one time side effect due
+        to self.transform_sentence
+        """
+        j = min(size, j)
+
+        # Sentences to integers
+        a = np.array(list(map(self.transform_sentence, paths[i:j])), dtype=np.int32)
+        return a
+
     def transform_data(self, paths):
         """
         The sentences containing of string values will be
@@ -160,27 +172,19 @@ class Dataset(ds):
             self.max_len = max(map(len, paths))
 
         size = len(paths)
-
-        # https://blog.dask.org/2019/06/20/load-image-data
-        def gen(i, j):
-            """
-            Note: Function has one time side effect due
-            to self.transform_sentence
-            """
-            j = min(size, j)
-
-            # Sentences to integers
-            a = np.array(list(map(self.transform_sentence, paths[i:j])), dtype=np.int32)
-            return a
-
         lazy_a = []
         for i, j in zip(
-                range(0, size, self.buffer_size),
-                range(self.buffer_size, size + self.buffer_size, self.buffer_size),
+            range(0, size, self.buffer_size),
+            range(self.buffer_size, size + self.buffer_size, self.buffer_size),
         ):
-            lazy_a.append(dask.delayed(gen)(i, j))
+            lazy_a.append(dask.delayed(self.gen)(i, j, size, paths))
 
-        lazy_a = [da.from_delayed(x, shape=(self.buffer_size, self.max_len + 1,), dtype=np.int32) for x in lazy_a]
+        lazy_a = [
+            da.from_delayed(
+                x, shape=(self.buffer_size, self.max_len + 1,), dtype=np.int32
+            )
+            for x in lazy_a
+        ]
 
         self.data = da.concatenate(lazy_a)
 
@@ -191,7 +195,7 @@ class Dataset(ds):
         # Because the data rows % buffer_size has a remainder.
         mask_short = self.data.sum(-1).compute() == -(self.max_len + 1)
         mask = np.ones(shape=(self.data.shape[0],), dtype=bool)
-        mask[:mask_short.shape[0]] = mask_short
+        mask[: mask_short.shape[0]] = mask_short
 
         self.data = self.data[~mask]
         self.data = self.data.persist()
@@ -274,3 +278,78 @@ class Dataset(ds):
             ds.data = self.data[i:j]
             ds.set_idx()
         return dsets
+
+
+class ArrayWrap(np.ndarray):
+    # We only wrap a numpy array such that it has a compute method
+    # See: https://docs.scipy.org/doc/numpy-1.13.0/user/basics.subclassing.html
+
+    def __new__(cls, input_array, attr=None):
+        obj = np.asarray(input_array).view(cls)
+        obj.compute = attr
+        return obj
+
+    def __array_finalize__(self, obj):
+        if obj is None: return
+        self.compute = lambda: self
+
+
+class DatasetEager(Dataset):
+    def __init__(
+        self,
+        sentences,
+        language=None,
+        skip=(),
+        buffer_size=int(1e4),
+        max_len=None,
+        min_len=1,
+        device="cpu",
+        chunk_size="auto",
+    ):
+        super().__init__(
+            sentences=sentences,
+            language=language,
+            skip=skip,
+            buffer_size=buffer_size,
+            max_len=max_len,
+            min_len=min_len,
+            device=device,
+            chunk_size=chunk_size,
+        )
+
+    def transform_data(self, paths):
+        """
+        The sentences containing of string values will be
+        transformed to a dask dataframe as integers.
+
+        Parameters
+        ----------
+        paths : list[list[str]]
+            Sentences with a variable length.
+        max_len : int
+            Maximum length to use in the dataset.
+        """
+        if self.max_len is None:
+            self.max_len = max(map(len, paths))
+
+        size = len(paths)
+        array = []
+        for i, j in zip(
+            range(0, size, self.buffer_size),
+            range(self.buffer_size, size + self.buffer_size, self.buffer_size),
+        ):
+            array.append(self.gen(i, j, size, paths))
+
+        self.data = np.concatenate(array)
+
+        # Because of transformation conditions there can be empty sequences
+        # These need to be removed.
+
+        # The actual computed values are a bit shorter.
+        # Because the data rows % buffer_size has a remainder.
+        mask_short = self.data.sum(-1) == -(self.max_len + 1)
+        mask = np.ones(shape=(self.data.shape[0],), dtype=bool)
+        mask[: mask_short.shape[0]] = mask_short
+
+        self.data = ArrayWrap(self.data[~mask])
+        self.set_idx()

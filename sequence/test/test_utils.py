@@ -13,12 +13,12 @@ def test_dataset_torch_compatible(dataset):
 
 
 def test_brown_dataset():
-    # TODO: Fix failing test. Dask thread fails
     ds, lang = brown()
     assert lang[234] == "found"
     # Check if punctuation is removed.
     with pytest.raises(ValueError):
         lang.words.index(".")
+    ds.get_batch(0, 10)
 
 
 def test_dataset_split(dataset):

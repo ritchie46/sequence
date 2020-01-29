@@ -1,5 +1,5 @@
 import nltk
-from sequence.data.utils import Dataset, Language
+from sequence.data.utils import Dataset, Language, DatasetEager
 from urllib import request
 import os
 import logging
@@ -27,9 +27,8 @@ def brown(dataset_kwargs={}):
                     sequence.data.utils.Language
                     ]
     """
-    # TODO: Fix with dask
     nltk.download("brown")
-    ds = Dataset(nltk.corpus.brown.sents(), **dataset_kwargs)
+    ds = DatasetEager(nltk.corpus.brown.sents(), **dataset_kwargs)
     return ds, ds.language
 
 
@@ -48,7 +47,7 @@ def treebank(dataset_kwargs={}):
                     ]
     """
     nltk.download("treebank")
-    ds = Dataset(nltk.corpus.treebank.sents(), **dataset_kwargs)
+    ds = DatasetEager(nltk.corpus.treebank.sents(), **dataset_kwargs)
     return ds, ds.language
 
 
