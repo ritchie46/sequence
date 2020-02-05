@@ -97,7 +97,32 @@ class Dataset(ds):
         min_len=1,
         device="cpu",
         chunk_size="auto",
+        allow_con_dup=True,
     ):
+        """
+
+        Parameters
+        ----------
+        sentences : list[list[str]]
+            [["hello", "world!"], ["get", "down!"]]
+        language : sequence.data.utils.Language
+        skip : list[str]
+            Words to skip.
+        buffer_size : int
+            Size of chunks prepared by lazy generator.
+            Only used during preparation of dataset.
+        max_len : int
+            Max sequence length.
+        min_len : int
+            Min sequence length.
+        device : str
+            'cuda' | 'cpu'
+        chunk_size : str/ int
+            Passed to dask array.
+        allow_con_dup : bool
+            Filter sequences from consecutive duplicates
+        """
+        self.allow_duplicates = allow_con_dup
         self.skip = set(skip)
         self.data = np.array([[]])
         self.max_len = max_len
@@ -107,7 +132,9 @@ class Dataset(ds):
         self.idx = None
         self.language = Language() if language is None else language
         if sentences is not None:
-            self.transform_data(sentences)
+            self.paths = sentences
+            self.transform_data()
+            self.paths = None  # Free memory
         self.device = device
         self.chunk_size = chunk_size
 
@@ -129,14 +156,23 @@ class Dataset(ds):
 
         # All the sentences are -1 padded
         idx = np.ones(self.max_len + 1) * -1
+        last_w = None
 
         if len(s) > self.max_len or len(s) < self.min_len:
             # will be removed jit
             return idx
 
-        for i, w in enumerate(s):
+        i = -1
+        for w in s:
             if w in self.skip:
                 continue
+            if not self.allow_duplicates:
+                if w == last_w:
+                    last_w = w
+                    continue
+                last_w = w
+            # Only increment if we don't continue
+            i += 1
 
             if w not in self.language.w2i:
                 self.language.register_single_word(w)
@@ -145,7 +181,7 @@ class Dataset(ds):
         return np.array(idx)
 
     # https://blog.dask.org/2019/06/20/load-image-data
-    def gen(self, i, j, size, paths):
+    def gen(self, i, j, size):
         """
         Note: Function has one time side effect due
         to self.transform_sentence
@@ -153,31 +189,30 @@ class Dataset(ds):
         j = min(size, j)
 
         # Sentences to integers
-        a = np.array(list(map(self.transform_sentence, paths[i:j])), dtype=np.int32)
+        a = np.array(list(map(self.transform_sentence, self.paths[i:j])), dtype=np.int32)
         return a
 
-    def transform_data(self, paths):
+    def transform_data(self):
         """
         The sentences containing of string values will be
         transformed to a dask dataframe as integers.
 
         Parameters
         ----------
-        paths : list[list[str]]
-            Sentences with a variable length.
         max_len : int
             Maximum length to use in the dataset.
         """
         if self.max_len is None:
-            self.max_len = max(map(len, paths))
+            self.max_len = max(map(len, self.paths))
 
-        size = len(paths)
+        size = len(self.paths)
         lazy_a = []
+
         for i, j in zip(
             range(0, size, self.buffer_size),
             range(self.buffer_size, size + self.buffer_size, self.buffer_size),
         ):
-            lazy_a.append(dask.delayed(self.gen)(i, j, size, paths))
+            lazy_a.append(dask.delayed(self.gen)(i, j, size))
 
         lazy_a = [
             da.from_delayed(
@@ -185,7 +220,6 @@ class Dataset(ds):
             )
             for x in lazy_a
         ]
-
         self.data = da.concatenate(lazy_a)
 
         # Because of transformation conditions there can be empty sequences
@@ -193,6 +227,7 @@ class Dataset(ds):
 
         # The actual computed values are a bit shorter.
         # Because the data rows % buffer_size has a remainder.
+
         mask_short = self.data.sum(-1).compute() == -(self.max_len + 1)
         mask = np.ones(shape=(self.data.shape[0],), dtype=bool)
         mask[: mask_short.shape[0]] = mask_short
