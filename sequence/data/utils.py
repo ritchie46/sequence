@@ -352,7 +352,7 @@ class DatasetEager(Dataset):
             chunk_size=chunk_size,
         )
 
-    def transform_data(self, paths):
+    def transform_data(self):
         """
         The sentences containing of string values will be
         transformed to a dask dataframe as integers.
@@ -365,15 +365,15 @@ class DatasetEager(Dataset):
             Maximum length to use in the dataset.
         """
         if self.max_len is None:
-            self.max_len = max(map(len, paths))
+            self.max_len = max(map(len, self.paths))
 
-        size = len(paths)
+        size = len(self.paths)
         array = []
         for i, j in zip(
             range(0, size, self.buffer_size),
             range(self.buffer_size, size + self.buffer_size, self.buffer_size),
         ):
-            array.append(self.gen(i, j, size, paths))
+            array.append(self.gen(i, j, size))
 
         self.data = np.concatenate(array)
 
