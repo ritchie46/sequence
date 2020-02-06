@@ -1,5 +1,4 @@
 from sequence import utils
-import matplotlib.pyplot as plt
 import numpy as np
 
 
@@ -10,4 +9,5 @@ def plot_annealings():
 
 
 if __name__ == "__main__":
+    import matplotlib.pyplot as plt
     plot_annealings()
