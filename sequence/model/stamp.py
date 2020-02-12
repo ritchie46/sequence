@@ -245,7 +245,7 @@ class AttentionNet(nn.Module):
             x_t = emb[i, ...].unsqueeze(0)
 
             # i + 1, b, e
-            x_i = emb[:i + 1, ...]
+            x_i = emb[: i + 1, ...]
 
             m_s_ = x_i.sum(0).unsqueeze(0)
 
@@ -269,7 +269,9 @@ class AttentionNet(nn.Module):
         return m_a
 
 
-def det_loss(model, packed_padded, test_loss=False, scale_loss_by_lengths=True, max_len=1.):
+def det_loss(
+    model, packed_padded, test_loss=False, scale_loss_by_lengths=True, max_len=1.0
+):
     # b,l,v
     y_hat = model(packed_padded)
 
@@ -300,7 +302,7 @@ def det_loss(model, packed_padded, test_loss=False, scale_loss_by_lengths=True, 
 
     # Divide every sequence loss by the length of the sequence
     if scale_loss_by_lengths:
-        loss = (loss.reshape(target.shape) / lengths.reshape(-1, 1))
+        loss = loss.reshape(target.shape) / lengths.reshape(-1, 1)
 
     # Divide the overall loss by the batch size
     loss = loss.sum() / target.shape[0]

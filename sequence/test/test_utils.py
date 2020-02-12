@@ -29,3 +29,8 @@ def test_dataset_split(dataset):
     assert ds_test.max_len == dataset.max_len
     assert ds_test.data.shape == (400, 9)
     assert ds_train.data.shape == (1600, 9)
+
+
+def test_transition_matrix(dataset):
+    mm = dataset.transition_matrix
+    assert mm[0, 1] == 0

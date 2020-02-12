@@ -1,6 +1,12 @@
 import torch
 from sequence.test import language, words, dataset, paths
-from sequence.model.stamp import STMP, trilinear_composition, det_loss, STAMP, AttentionNet
+from sequence.model.stamp import (
+    STMP,
+    trilinear_composition,
+    det_loss,
+    STAMP,
+    AttentionNet,
+)
 import numpy as np
 
 
@@ -128,13 +134,9 @@ def test_attention():
     att = AttentionNet(2)
 
     # Two sessions s1, and s2
-    s1 = torch.tensor([[1, 1],
-                      [2, 2],
-                      [3, 3]], dtype=torch.float)
+    s1 = torch.tensor([[1, 1], [2, 2], [3, 3]], dtype=torch.float)
 
-    s2 = torch.tensor([[0.5, 0.5],
-                    [1.5, 1.5],
-                    [2.5, 2.5]])
+    s2 = torch.tensor([[0.5, 0.5], [1.5, 1.5], [2.5, 2.5]])
 
     m_s = s1.sum(0)
 
@@ -151,4 +153,3 @@ def test_attention():
 
     _, ai = att(e, return_attention_factors=True)
     assert ai[-1][0, 0] == a_0
-

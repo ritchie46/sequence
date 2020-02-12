@@ -10,6 +10,7 @@ class VAE(EncoderDecoder):
     Implementation of Generating Sentences from a Continuous Space
     https://arxiv.org/pdf/1511.06349.pdf
     """
+
     def __init__(
         self,
         vocabulary_size,
@@ -223,4 +224,3 @@ def inference(model, packed_padded, n=1, use_mean=True, return_activations=False
     if return_activations:
         return activation
     return out.T.squeeze()
-

@@ -18,8 +18,12 @@ if __name__ == "__main__":
     parser.add_argument("--tensorboard", type=bool, default=True)
     parser.add_argument("--lr", type=float, default=0.001)
     parser.add_argument("-e", "--epochs", type=int, default=20)
-    parser.add_argument("--min_length", type=int, default=4, help="Minimum sequence length")
-    parser.add_argument("--max_length", type=int, default=30, help="Maximum sequence length")
+    parser.add_argument(
+        "--min_length", type=int, default=4, help="Minimum sequence length"
+    )
+    parser.add_argument(
+        "--max_length", type=int, default=30, help="Maximum sequence length"
+    )
     parser.add_argument("--train_percentage", type=float, default=0.9)
     parser.add_argument(
         "--dataset",
@@ -40,12 +44,7 @@ if __name__ == "__main__":
         help="Path to existing ModelRegistry",
         dest="model_registry_path",
     )
-    parser.add_argument(
-        "--optimizer",
-        type=str,
-        default="adam",
-        help="adam|sgd"
-    )
+    parser.add_argument("--optimizer", type=str, default="adam", help="adam|sgd")
 
     # VAE
     vae_parser = subparsers.add_parser(
@@ -69,7 +68,7 @@ if __name__ == "__main__":
     stamp_parser.set_defaults(func=main.stamp.main)
     stamp_parser.add_argument("--nonlinearity", type=str, default="tanh")
     stamp_parser.add_argument("--model", type=str, default="stmp", help="stmp or stamp")
-    stamp_parser.add_argument("--scale_loss_by_lengths", type=str, default='true')
+    stamp_parser.add_argument("--scale_loss_by_lengths", type=str, default="true")
 
     args = parser.parse_args()
     args.func(args)

@@ -10,4 +10,5 @@ def plot_annealings():
 
 if __name__ == "__main__":
     import matplotlib.pyplot as plt
+
     plot_annealings()

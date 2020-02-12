@@ -1,9 +1,10 @@
 import torch
 import os
-from logging import getLogger
+import logging
 import numpy as np
+import tqdm
 
-logger = getLogger(__name__)
+logger = logging.getLogger(__name__)
 try:
     from apex import amp
 
@@ -93,3 +94,18 @@ def translate_sentence_i2w(language, sentence):
     # evaluate property only once
     d = language.i2w
     return [d[int(j)] for j in sentence]
+
+
+class TqdmLoggingHandler(logging.Handler):
+    def __init__(self, level=logging.NOTSET):
+        super().__init__(level)
+
+    def emit(self, record):
+        try:
+            msg = self.format(record)
+            tqdm.tqdm.write(msg)
+            self.flush()
+        except (KeyboardInterrupt, SystemExit):
+            raise
+        except:
+            self.handleError(record)

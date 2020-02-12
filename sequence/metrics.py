@@ -2,7 +2,14 @@ import numpy as np
 
 
 def rank_scores(
-    pred, target, k=20, reduction="average", include_p_at_k=True, include_mrr=True, skip_first_k=0, ignore_items=None
+    pred,
+    target,
+    k=20,
+    reduction="average",
+    include_p_at_k=True,
+    include_mrr=True,
+    skip_first_k=0,
+    ignore_items=None,
 ):
     """
     Precision @ k and Mean reciprocal rank.

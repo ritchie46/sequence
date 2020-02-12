@@ -5,6 +5,13 @@ import dask.array as da
 from torch.utils.data import Dataset as ds
 from collections import defaultdict
 import string
+from scipy.sparse import lil_matrix, csr_matrix
+import logging
+from sequence.utils.general import TqdmLoggingHandler
+import tqdm
+
+logger = logging.getLogger(__name__)
+logger.addHandler(TqdmLoggingHandler())
 
 
 class Language:
@@ -122,6 +129,7 @@ class Dataset(ds):
         allow_con_dup : bool
             Filter sequences from consecutive duplicates
         """
+        self._trans_matrix = None
         self.allow_duplicates = allow_con_dup
         self.skip = set(skip)
         self.data = np.array([[]])
@@ -189,7 +197,9 @@ class Dataset(ds):
         j = min(size, j)
 
         # Sentences to integers
-        a = np.array(list(map(self.transform_sentence, self.paths[i:j])), dtype=np.int32)
+        a = np.array(
+            list(map(self.transform_sentence, self.paths[i:j])), dtype=np.int32
+        )
         return a
 
     def transform_data(self):
@@ -314,6 +324,30 @@ class Dataset(ds):
             ds.set_idx()
         return dsets
 
+    def get_single_row(self, i):
+        # remove the EOS and -1 Pad
+        return self.__getitem__(i)[1].T.flatten()[:-2]
+
+    @property
+    def transition_matrix(self):
+        if self._trans_matrix is None:
+            logger.info("creating transition matrix...")
+            rank = self.language.vocabulary_size
+            mm = lil_matrix((rank, rank), dtype=np.float32)
+            for k in tqdm.tqdm(range(self.data.shape[0])):
+                row = self.get_single_row(k)
+
+                for i, j in zip(row, row[1:]):
+                    mm[i, j] += 1.0
+
+            # reshape such that w/ broadcasting we divide the whole rows
+            total = mm.sum(0).reshape(-1, 1)
+            # but first, we cannot divide by 0
+            total[total == 0] = 1.0
+            mm = mm / total
+            self._trans_matrix = csr_matrix(mm)
+        return self._trans_matrix
+
 
 class ArrayWrap(np.ndarray):
     # We only wrap a numpy array such that it has a compute method
@@ -325,7 +359,8 @@ class ArrayWrap(np.ndarray):
         return obj
 
     def __array_finalize__(self, obj):
-        if obj is None: return
+        if obj is None:
+            return
         self.compute = lambda: self
 
 
