@@ -156,7 +156,7 @@ def test_stmp(dataset, language):
     optim = torch.optim.Adam(m.parameters(), lr=0.01)
     from sequence.train.stamp import run_epoch
 
-    run_epoch(2, m, optim, dataset, batch_size=32, device=device)
+    run_epoch(2, m, optim, dataset, batch_size=32, device=device, dataset_test=dataset)
 
     packed_padded, padded = dataset.get_batch(0, 200, device=device)
     y_hat = m(packed_padded)
