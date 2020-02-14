@@ -6,13 +6,15 @@ from sequence.utils.general import TqdmLoggingHandler
 import tqdm
 import dask.array as da
 import dask
+from torch.utils.data import Dataset as TorchDataSet
 
 logger = logging.getLogger(__name__)
 logger.addHandler(TqdmLoggingHandler())
 
 
-class DatasetABC:
+class DatasetABC(TorchDataSet):
     def __init__(self, parent, language, device):
+        super().__init__()
         self.parent = parent
         self.language = language
         self.device = device
@@ -133,7 +135,6 @@ class Transform:
         self.chunk_size = chunk_size
         self.skip = set(skip)
         self.allow_duplicates = allow_con_dup
-
         if sentences is not None:
             self.paths = sentences
             self.transform_data()
@@ -201,15 +202,9 @@ class Transform:
         """
         The sentences containing of string values will be
         transformed to a dask dataframe as integers.
-
-        Parameters
-        ----------
-        max_len : int
-            Maximum length to use in the dataset.
         """
         if self.max_len is None:
             self.max_len = max(map(len, self.paths))
-
         size = len(self.paths)
         lazy_a = []
 

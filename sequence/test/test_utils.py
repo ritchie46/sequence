@@ -1,7 +1,10 @@
 from torch.utils.data import DataLoader
 from sequence.data.datasets import brown
+from sequence.data.utils import DatasetInference, Tokens
 from sequence.test import language, words, dataset, paths
 import pytest
+import numpy as np
+import random
 
 
 def test_dataset_torch_compatible(dataset):
@@ -34,3 +37,22 @@ def test_dataset_split(dataset):
 def test_transition_matrix(dataset):
     mm = dataset.transition_matrix
     assert mm[0, 1] == 0
+
+
+def test_inference_dset(paths, dataset):
+    language = dataset.language
+
+    # Shuffle paths so that the dataset cannot create the same data.
+    np.random.seed(1)
+    np.random.shuffle(paths)
+
+    new_paths = []
+    for p in paths:
+        new = list(p)
+        new.append(random.choice("ZYZWVUT"))
+        new_paths.append(new)
+
+    inference_ds = DatasetInference(sentences=new_paths, language=language)
+    # Assert that the new words are assigned to the UNKNOWN field.
+    assert (inference_ds.data.compute() == Tokens.UNKNOWN.value).sum() > 0
+    assert (dataset.data.compute() == Tokens.UNKNOWN.value).sum() == 0

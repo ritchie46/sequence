@@ -1,9 +1,15 @@
 import numpy as np
 import torch
-from torch.utils.data import Dataset as ds
 from collections import defaultdict
 import string
 from sequence.data import traits
+from enum import IntEnum
+
+
+class Tokens(IntEnum):
+    EOS = 0
+    SOS = 1
+    UNKNOWN = 2
 
 
 class Language:
@@ -16,7 +22,7 @@ class Language:
             self.remove_punctuation = None
         # Warning. Don't change index 0, 1, and 2
         # These are used in the models!
-        self.w2i = {"EOS": 0, "SOS": 1, "UNKNOWN": 2}
+        self.w2i = {"EOS": Tokens.EOS, "SOS": Tokens.SOS, "UNKNOWN": Tokens.UNKNOWN}
         if words is not None:
             self.register(words)
 
@@ -85,11 +91,13 @@ class Language:
             return item in self.i2w
 
 
-class Dataset(traits.Query, traits.TransitionMatrix, traits.Transform, traits.DatasetABC, ds):
+class Dataset(
+    traits.Query, traits.TransitionMatrix, traits.Transform, traits.DatasetABC
+):
     def __init__(
         self,
         sentences,
-        language=None,
+        language,
         skip=(),
         buffer_size=int(1e4),
         max_len=None,
@@ -105,6 +113,7 @@ class Dataset(traits.Query, traits.TransitionMatrix, traits.Transform, traits.Da
         sentences : list[list[str]]
             [["hello", "world!"], ["get", "down!"]]
         language : sequence.data.utils.Language
+            Required. Should be the language fitted for training.
         skip : list[str]
             Words to skip.
         buffer_size : int
@@ -135,7 +144,7 @@ class Dataset(traits.Query, traits.TransitionMatrix, traits.Transform, traits.Da
             chunk_size=chunk_size,
             sentences=sentences,
             skip=skip,
-            allow_con_dup=allow_con_dup
+            allow_con_dup=allow_con_dup,
         )
 
     def split(self, fracs, shuffle=True):
@@ -243,3 +252,73 @@ class DatasetEager(Dataset):
 
         self.data = ArrayWrap(self.data[~mask])
         self.set_idx()
+
+
+class DatasetInference(traits.Query, traits.Transform, traits.DatasetABC):
+    def __init__(
+        self,
+        sentences,
+        language=None,
+        buffer_size=int(1e4),
+        max_len=None,
+        min_len=1,
+        device="cpu",
+        chunk_size="auto",
+    ):
+        traits.DatasetABC.__init__(self, self, language=language, device=device)
+        traits.Query.__init__(self, self)
+        traits.Transform.__init__(
+            self,
+            parent=self,
+            buffer_size=buffer_size,
+            min_len=min_len,
+            max_len=max_len,
+            chunk_size=chunk_size,
+            sentences=sentences,
+            skip=(),
+            allow_con_dup=False,
+        )
+
+    def transform_sentence(self, s):
+        """
+        Transform sentence of string to integers.
+
+        This method is different from the one in training because we
+        don't want to add new words to the language. Unknown words will
+        be added to UNKNOWN.
+
+        Parameters
+        ----------
+        s : list[str]
+            A sequence of any length.
+
+        Returns
+        -------
+        s : np.array[int]
+            A -1 padded sequence of shape (self.max_len, )
+        """
+        s = list(filter(lambda x: len(x) > 0, [self.language.clean(w) for w in s]))
+
+        # All the sentences are -1 padded
+        idx = np.ones(self.max_len + 1) * -1
+        last_w = None
+
+        if len(s) > self.max_len or len(s) < self.min_len:
+            # will be removed jit
+            return idx
+
+        i = -1
+        for w in s:
+            if not self.allow_duplicates:
+                if w == last_w:
+                    last_w = w
+                    continue
+                last_w = w
+            # Only increment if we don't continue
+            i += 1
+
+            if w not in self.language.w2i:
+                w = Tokens.UNKNOWN.name
+            idx[i] = self.language.w2i[w]
+        idx[i + 1] = 0
+        return np.array(idx)
