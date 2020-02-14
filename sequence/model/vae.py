@@ -3,6 +3,7 @@ from torch import nn
 import torch.nn.functional as F
 from sequence.model.seq2seq import EncoderDecoder
 import numpy as np
+from sequence.data.utils import Tokens
 
 
 class VAE(EncoderDecoder):
@@ -123,9 +124,8 @@ def run_decoder(model, packed_padded, word_dropout, h):
         )
         keep_prob[padded_decoder < 0] = 1.0
 
-        # 2 is the "UNKNOWN" word
         mask = (mask * keep_prob).bool()
-        padded_decoder = torch.masked_fill(padded_decoder, mask, 2)
+        padded_decoder = torch.masked_fill(padded_decoder, mask, Tokens.UNKNOWN.value)
 
     packed_padded_decoder = torch.nn.utils.rnn.pack_padded_sequence(
         padded_decoder, lengths, enforce_sorted=False
