@@ -127,6 +127,7 @@ class Transform:
         sentences,
         skip,
         allow_con_dup,
+        mask=True,
     ):
         self.parent = parent
         self.buffer_size = buffer_size
@@ -135,6 +136,7 @@ class Transform:
         self.chunk_size = chunk_size
         self.skip = set(skip)
         self.allow_duplicates = allow_con_dup
+        self.mask = mask
         if sentences is not None:
             self.paths = sentences
             self.transform_data()
@@ -222,16 +224,17 @@ class Transform:
         ]
         self.parent.data = da.concatenate(lazy_a)
 
-        # Because of transformation conditions there can be empty sequences
-        # These need to be removed.
+        if self.mask:
+            # Because of transformation conditions there can be empty sequences
+            # These need to be removed.
 
-        # The actual computed values are a bit shorter.
-        # Because the data rows % buffer_size has a remainder.
+            # The actual computed values are a bit shorter.
+            # Because the data rows % buffer_size has a remainder.
 
-        mask_short = self.parent.data.sum(-1).compute() == -(self.max_len + 1)
-        mask = np.ones(shape=(self.parent.data.shape[0],), dtype=bool)
-        mask[: mask_short.shape[0]] = mask_short
+            mask_short = self.parent.data.sum(-1).compute() == -(self.max_len + 1)
+            mask = np.ones(shape=(self.parent.data.shape[0],), dtype=bool)
+            mask[: mask_short.shape[0]] = mask_short
+            self.parent.data = self.parent.data[~mask]
 
-        self.parent.data = self.parent.data[~mask]
         self.parent.data = self.parent.data.persist()
         self.parent.set_idx()

@@ -258,7 +258,7 @@ class DatasetInference(traits.Query, traits.Transform, traits.DatasetABC):
     def __init__(
         self,
         sentences,
-        language=None,
+        language,
         buffer_size=int(1e4),
         max_len=None,
         min_len=1,
@@ -277,6 +277,7 @@ class DatasetInference(traits.Query, traits.Transform, traits.DatasetABC):
             sentences=sentences,
             skip=(),
             allow_con_dup=False,
+            mask=False
         )
 
     def transform_sentence(self, s):
