@@ -1,5 +1,7 @@
 Sequence
 ----------
+[![Build Status](https://travis-ci.org/ritchie46/sequence.svg?branch=master)](https://travis-ci.org/ritchie46/sequence)
+
 **Deep learning models for sequence related data, i.e. (language, sessions)**
 
 
