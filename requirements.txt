@@ -1,9 +1,1 @@
-numpy>=1.17.3
-torch>=1.3.0
-pytest>=5.2.4
-dask>=2.8
-tensorboardX==1.9
-git+https://github.com/ritchie46/dumpster.git
-nltk>=3.4.4
-pyunpack~=0.1.2
-patool~=1.12
+.
