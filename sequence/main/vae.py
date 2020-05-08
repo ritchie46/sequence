@@ -3,9 +3,10 @@ import os
 from sequence.utils import annealing_sigmoid
 from sequence.train.vae import run_epoch
 from sequence.main import generic
+import argparse
 
 
-def main(args):
+def main(args: argparse.Namespace):
     name = f"z{args.latent_size}-h{args.hidden_size}-e{args.embedding_dim}-wd{args.word_dropout}"
     artifact_dir, tb_dir = generic.create_dirs(args, name)
     dataset_train, dataset_test, language = generic.load_dataset(args)

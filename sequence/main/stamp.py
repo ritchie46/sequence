@@ -3,9 +3,10 @@ import os
 from sequence.train.stamp import run_epoch
 from sequence.main import generic
 from sequence.callbacks import log_ranking_metrics
+import argparse
 
 
-def main(args):
+def main(args: argparse.Namespace):
 
     name = args.logging_name
     if args.model == "stmp":

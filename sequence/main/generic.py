@@ -6,13 +6,16 @@ from tensorboardX import SummaryWriter
 from sequence import callbacks
 from dumpster.registries.file import ModelRegistry
 import torch
+import argparse
+from torch import nn
+from typing import List, Callable
 
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
-def load_dataset(args):
+def load_dataset(args: argparse.Namespace):
     dataset_kwargs = dict(min_len=args.min_length, max_len=args.max_length)
     fn = args.dataset
     if fn == "treebank":
@@ -40,7 +43,9 @@ def load_dataset(args):
     return dataset_train, dataset_test, language
 
 
-def load_model_registry(args, cls, name, **kwargs):
+def load_model_registry(
+    args: argparse.Namespace, cls: nn.Module, name: str, **kwargs: dict
+) -> ModelRegistry:
     if args.model_registry_path is None:
         model_registry = ModelRegistry(name)
         model_registry.register(cls, insert_methods="pytorch", **kwargs)
@@ -50,7 +55,7 @@ def load_model_registry(args, cls, name, **kwargs):
     return model_registry
 
 
-def create_dirs(args, name):
+def create_dirs(args: argparse.Namespace, name: str) -> (str, str):
     os.makedirs(args.storage_dir, exist_ok=True)
     artifact_dir = os.path.join(args.storage_dir, "artifacts", name)
     os.makedirs(os.path.join(artifact_dir), exist_ok=True)
@@ -61,7 +66,7 @@ def create_dirs(args, name):
     return artifact_dir, tb_dir
 
 
-def init_tensorboard(args, tb_dir, name):
+def init_tensorboard(args: argparse.Namespace, tb_dir: str, name: str) -> SummaryWriter:
     if args.tensorboard:
         writer = SummaryWriter(os.path.join(tb_dir, name))
     else:
@@ -69,7 +74,9 @@ def init_tensorboard(args, tb_dir, name):
     return writer
 
 
-def init_callbacks(args, model_registry, artifact_dir):
+def init_callbacks(
+    args: argparse.Namespace, model_registry: ModelRegistry, artifact_dir: str
+) -> List[Callable]:
     callbacks_ = []
     if args.save_every_n is not None:
         callbacks_.append(
@@ -81,7 +88,7 @@ def init_callbacks(args, model_registry, artifact_dir):
     return callbacks_
 
 
-def init_global_step(args, model_registry):
+def init_global_step(args: argparse.Namespace, model_registry: ModelRegistry) -> int:
     global_step = args.global_step
     # Only use ModelRegistries global step if global_step is non default.
     if hasattr(model_registry, "global_step_") and global_step == 0:
@@ -89,7 +96,7 @@ def init_global_step(args, model_registry):
     return global_step
 
 
-def init_device(args, model_registry):
+def init_device(args: argparse.Namespace, model_registry: ModelRegistry) -> str:
     if torch.cuda.is_available() and not args.force_cpu:
         device = "cuda"
         logger.info("CUDA available.")
@@ -100,7 +107,7 @@ def init_device(args, model_registry):
     return device
 
 
-def init_optimizer(args, model_registry):
+def init_optimizer(args: argparse.Namespace, model_registry: ModelRegistry):
     if args.optimizer == "adam":
         logger.info("Using adam optimizer")
         return torch.optim.Adam(
