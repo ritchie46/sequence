@@ -4,6 +4,7 @@ from collections import defaultdict
 import string
 from sequence.data import traits
 from enum import IntEnum
+from typing import List, Union
 
 
 class Tokens(IntEnum):
@@ -13,7 +14,28 @@ class Tokens(IntEnum):
 
 
 class Language:
-    def __init__(self, words=None, lower=True, remove_punctuation=True):
+    def __init__(
+        self,
+        words: Union[List[str], None] = None,
+        lower: bool = True,
+        remove_punctuation: bool = True,
+        custom_embeddings: Union[torch.FloatTensor, None] = None,
+    ):
+        """
+        The vocabulary of a dataset. This will map the unique strings to indexes that map to the embeddings.
+        You can also provide custom embeddings object.
+
+        Parameters
+        ----------
+        words
+            Unique words in the dataset
+        lower
+            Lower the string: str.lower()
+        remove_punctuation
+            !"#$%&'()*+,-./:;<=>?@[\]^_`{|}~ will be removed
+        custom_embeddings
+            Shape(num_embeddings, embedding_dim)
+        """
         self.lower = lower
         self.remove_punctuation = remove_punctuation
         if remove_punctuation:
@@ -25,6 +47,7 @@ class Language:
         self.w2i = {"EOS": Tokens.EOS, "SOS": Tokens.SOS, "UNKNOWN": Tokens.UNKNOWN}
         if words is not None:
             self.register(words)
+        self.custom_embeddings = custom_embeddings
 
     def clean(self, word):
         if self.lower:
@@ -277,7 +300,7 @@ class DatasetInference(traits.Query, traits.Transform, traits.DatasetABC):
             sentences=sentences,
             skip=(),
             allow_con_dup=False,
-            mask=False
+            mask=False,
         )
 
     def transform_sentence(self, s):

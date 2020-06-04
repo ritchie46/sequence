@@ -6,7 +6,7 @@ Sequence
 
 ## Installation
 
-Only install dependencies by running or `$ pip -r requirements.txt` or install as (editable) library by `pip install -e .`
+Only install dependencies by running or `$ pip install -r requirements.txt` or install as (editable) library by `pip install -e .`
 
 
 ## STAMP: Short-Term Attention/Memory Priority Model forSession-based Recommendation

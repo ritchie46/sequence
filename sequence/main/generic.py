@@ -44,11 +44,11 @@ def load_dataset(args: argparse.Namespace):
 
 
 def load_model_registry(
-    args: argparse.Namespace, cls: nn.Module, name: str, **kwargs: dict
+    args: argparse.Namespace, cls: nn.Module, name: str, **model_kwargs: dict
 ) -> ModelRegistry:
     if args.model_registry_path is None:
         model_registry = ModelRegistry(name)
-        model_registry.register(cls, insert_methods="pytorch", **kwargs)
+        model_registry.register(cls, insert_methods="pytorch", **model_kwargs)
     else:
         with open(args.model_registry_path, "rb") as f:
             model_registry = ModelRegistry().load(f)

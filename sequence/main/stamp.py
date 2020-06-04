@@ -23,6 +23,7 @@ def main(args: argparse.Namespace):
         vocabulary_size=language.vocabulary_size,
         embedding_dim=args.embedding_dim,
         nonlinearity=args.nonlinearity,
+        custom_embeddings=language.custom_embeddings,
     )
 
     model_registry = generic.load_model_registry(args, cls, name, **model_args)

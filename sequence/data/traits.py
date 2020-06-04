@@ -7,13 +7,25 @@ import tqdm
 import dask.array as da
 import dask
 from torch.utils.data import Dataset as TorchDataSet
+from typing import Any
 
 logger = logging.getLogger(__name__)
 logger.addHandler(TqdmLoggingHandler())
 
 
 class DatasetABC(TorchDataSet):
-    def __init__(self, parent, language, device):
+    def __init__(self, parent: Any, language, device: str):
+        """
+
+        Parameters
+        ----------
+        parent
+            Parent dataset trait
+        language : sequence.data.Language
+            Language object
+        device
+            "cpu"/ "cuda"
+        """
         super().__init__()
         self.parent = parent
         self.language = language
@@ -26,7 +38,7 @@ class Query:
     Required: DatasetABC
     """
 
-    def __init__(self, parent):
+    def __init__(self, parent: Any):
         self.parent = parent
         # used for shuffling
         self.idx = None
@@ -57,7 +69,7 @@ class Query:
     def __len__(self):
         return len(self.parent.data)
 
-    def __getitem__(self, idx, device=None):
+    def __getitem__(self, idx: int, device: str = None):
         if isinstance(idx, int):
             idx = [idx]
         x = self.parent.data[idx].compute()
