@@ -3,6 +3,7 @@ import torch.nn.functional as F
 import torch
 from sequence.model.modular import Embedding
 import numpy as np
+from typing import Union
 
 
 def trilinear_composition(h_s, h_t, x, einsum=True):
@@ -58,7 +59,7 @@ def trilinear_composition(h_s, h_t, x, einsum=True):
         return vlb.transpose(0, 2)
 
 
-def cumavg(a):
+def cumavg(a: torch.FloatTensor):
     """
 
     Parameters
@@ -92,11 +93,11 @@ class STMP(Embedding):
 
     def __init__(
         self,
-        vocabulary_size,
-        embedding_dim=10,
-        custom_embeddings=None,
-        nonlinearity="tanh",
-        mlp_layers=1,
+        vocabulary_size: int,
+        embedding_dim: int = 10,
+        custom_embeddings: Union[None, torch.FloatTensor] = None,
+        nonlinearity: str = "tanh",
+        mlp_layers: int = 1,
     ):
         super().__init__(vocabulary_size, embedding_dim, custom_embeddings)
 
@@ -119,7 +120,7 @@ class STMP(Embedding):
         self.mlp_a = gen_mlp(mlp_layers, nl)
         self.mlp_b = gen_mlp(mlp_layers, nl)
 
-    def external_memory(self, emb):
+    def external_memory(self, emb: torch.nn.utils.rnn.PackedSequence):
         """
         Compute the cumulative average.
 
@@ -191,11 +192,11 @@ class STMP(Embedding):
 class STAMP(STMP):
     def __init__(
         self,
-        vocabulary_size,
-        embedding_dim=10,
-        custom_embeddings=None,
-        nonlinearity="tanh",
-        mlp_layers=1,
+        vocabulary_size: int,
+        embedding_dim: int = 10,
+        custom_embeddings: Union[None, torch.FloatTensor] = None,
+        nonlinearity: str = "tanh",
+        mlp_layers: int = 1,
     ):
         super().__init__(
             vocabulary_size=vocabulary_size,
@@ -206,14 +207,14 @@ class STAMP(STMP):
         )
         self.attention_net = AttentionNet(self.embedding_dim)
 
-    def forward(self, x, return_all=False):
+    def forward(self, x: torch.FloatTensor, return_all: bool = False):
         _, m_t = self.m_s_m_t(x)
         m_s = self.attention_net(m_t)
         return self._apply_from_m(m_s, m_t, return_all)
 
 
 class AttentionNet(nn.Module):
-    def __init__(self, embedding_dim):
+    def __init__(self, embedding_dim: int):
         super().__init__()
 
         # Only W3 has bias. Its bias serves as b_a
@@ -222,7 +223,7 @@ class AttentionNet(nn.Module):
         self.w3 = nn.Linear(embedding_dim, embedding_dim)
         self.w0 = nn.Linear(embedding_dim, 1, bias=False)
 
-    def forward(self, emb, return_attention_factors=False):
+    def forward(self, emb: torch.FloatTensor, return_attention_factors: bool = False):
         """
 
         Parameters
@@ -270,7 +271,11 @@ class AttentionNet(nn.Module):
 
 
 def det_loss(
-    model, packed_padded, test_loss=False, scale_loss_by_lengths=True, max_len=1.0
+    model: STMP,
+    packed_padded: torch.nn.utils.rnn.PackedSequence,
+    test_loss: bool = False,
+    scale_loss_by_lengths: bool = True,
+    max_len: int = 1,
 ):
     # b,l,v
     y_hat = model(packed_padded)

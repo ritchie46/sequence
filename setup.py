@@ -10,7 +10,7 @@ setup(
     packages=find_packages(),
     install_requires=[
         "numpy>=1.17.3",
-        "torch>=1.3.0",
+        "torch>=1.4.0",
         "tensorboardX",
         "dumpster",
         "patool~=1.12",

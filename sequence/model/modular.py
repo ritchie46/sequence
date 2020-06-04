@@ -1,9 +1,15 @@
 from torch import nn
 import torch
+from typing import Union
 
 
 class Embedding(nn.Module):
-    def __init__(self, vocabulary_size, embedding_dim=20, custom_embeddings=None):
+    def __init__(
+        self,
+        vocabulary_size: int,
+        embedding_dim: int = 20,
+        custom_embeddings: Union[None, torch.FloatTensor] = None,
+    ):
         super().__init__()
 
         if custom_embeddings is None:

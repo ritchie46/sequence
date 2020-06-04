@@ -25,6 +25,7 @@ class Query:
     """
     Required: DatasetABC
     """
+
     def __init__(self, parent):
         self.parent = parent
         # used for shuffling
@@ -33,7 +34,7 @@ class Query:
     def set_idx(self):
         self.idx = np.arange(len(self.parent.data), dtype=np.int32)
 
-    def get_batch(self, start, end, device="cpu"):
+    def get_batch(self, start: int, end: int, device: str = "cpu"):
         """
         Get a slice from the dataset.
 
@@ -75,7 +76,7 @@ class Query:
             padded,
         )
 
-    def get_single_row(self, i):
+    def get_single_row(self, i: int):
         # remove the EOS and -1 Pad
         return self.__getitem__(i)[1].T.flatten()[:-2]
 
@@ -117,6 +118,7 @@ class Transform:
     """
     Required: DatasetABC
     """
+
     def __init__(
         self,
         parent,
