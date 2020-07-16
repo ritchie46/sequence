@@ -5,6 +5,20 @@ import string
 from sequence.data import traits
 from enum import IntEnum
 from typing import List, Dict, Optional, Union, Sequence
+import functools
+
+
+def lazyprop(fn):
+    attr_name = "_lazy_" + fn.__name__
+
+    @property
+    @functools.wraps(fn)
+    def _lazyprop(self):
+        if not hasattr(self, attr_name):
+            setattr(self, attr_name, fn(self))
+        return getattr(self, attr_name)
+
+    return _lazyprop
 
 
 class Tokens(IntEnum):
@@ -79,7 +93,7 @@ class Language:
         if len(c) > 0:
             self.w2i[c] = len(self.w2i)
 
-    @property
+    @lazyprop
     def i2w(self) -> Dict[int, Optional[str]]:
         d = defaultdict(lambda: None)
         d.update({v: k for k, v in self.w2i.items()})
