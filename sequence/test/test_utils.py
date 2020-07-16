@@ -1,6 +1,6 @@
 from torch.utils.data import DataLoader
 from sequence.data.datasets import brown
-from sequence.data.utils import DatasetInference, Tokens
+from sequence.data.utils import DatasetInference, Tokens, Language
 from sequence.test import language, words, dataset, paths
 import pytest
 import numpy as np
@@ -56,3 +56,10 @@ def test_inference_dset(paths, dataset):
     # Assert that the new words are assigned to the UNKNOWN field.
     assert (inference_ds.data.compute() == Tokens.UNKNOWN.value).sum() > 0
     assert (dataset.data.compute() == Tokens.UNKNOWN.value).sum() == 0
+
+
+def test_custom_emb():
+    emb = np.random.rand(3, 5)
+    lang = Language(custom_embeddings=emb)
+    # check if eos, sos and unknown are inserted
+    assert lang.custom_embeddings.shape == (6, 5)

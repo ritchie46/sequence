@@ -17,6 +17,8 @@ def main(args: argparse.Namespace):
         if name is None:
             name = "stamp"
         cls = STAMP
+
+    # str, str
     artifact_dir, tb_dir = generic.create_dirs(args, name)
     dataset_train, dataset_test, language = generic.load_dataset(args)
     model_args = dict(

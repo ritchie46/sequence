@@ -8,14 +8,17 @@ from dumpster.registries.file import ModelRegistry
 import torch
 import argparse
 from torch import nn
-from typing import List, Callable
+from typing import List, Callable, TYPE_CHECKING, Tuple
+
+if TYPE_CHECKING:
+    from sequence.data.utils import Dataset, Language
 
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
-def load_dataset(args: argparse.Namespace):
+def load_dataset(args: argparse.Namespace) -> Tuple[Dataset, Dataset, Language]:
     dataset_kwargs = dict(min_len=args.min_length, max_len=args.max_length)
     fn = args.dataset
     if fn == "treebank":

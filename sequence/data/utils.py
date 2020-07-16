@@ -38,7 +38,7 @@ class Language:
         words: Optional[List[str]] = None,
         lower: bool = True,
         remove_punctuation: bool = True,
-        custom_embeddings: Optional[torch.FloatTensor] = None,
+        custom_embeddings: Optional[np.ndarray] = None,
     ):
         """
         Parameters
@@ -63,7 +63,23 @@ class Language:
         self.w2i = {"EOS": Tokens.EOS, "SOS": Tokens.SOS, "UNKNOWN": Tokens.UNKNOWN}
         if words is not None:
             self.register(words)
-        self.custom_embeddings = custom_embeddings
+        self.custom_embeddings = self.init_custom_emb(custom_embeddings)
+
+    @staticmethod
+    def init_custom_emb(
+        custom_embeddings: Optional[np.ndarray],
+    ) -> Optional[np.ndarray]:
+        if custom_embeddings is not None:
+            # we need to concat 3 embeddings for EOS, SOS and UNKNOWN
+            row, emb_dim = custom_embeddings.shape
+
+            pre = np.zeros((row, emb_dim))
+            # one hot encode. TODO: maybe something smarter?
+            # can fail if embedding size is two. It happened to you? You can't be serious!
+            pre[0, 0] = 1
+            pre[1, 1] = 1
+            pre[2, 2] = 1
+            return np.concatenate((pre, custom_embeddings), axis=0)
 
     def clean(self, word: str) -> str:
         """
