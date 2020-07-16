@@ -2,7 +2,7 @@ Sequence
 ----------
 **Deep learning models for sequence related data, i.e. (language, sessions)**
 
-[![Build Status](https://travis-ci.org/ritchie46/sequence.svg?branch=master)](https://travis-ci.org/ritchie46/sequence)
+[![Build Status](https://travis-ci.org/rick020/sequence.svg?branch=master)](https://travis-ci.org/rick020/sequence)
 
 ## Installation
 
