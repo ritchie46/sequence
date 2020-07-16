@@ -1,3 +1,4 @@
+from __future__ import annotations
 import torch
 import numpy as np
 from scipy.sparse import lil_matrix, csr_matrix
@@ -7,14 +8,18 @@ import tqdm
 import dask.array as da
 import dask
 from torch.utils.data import Dataset as TorchDataSet
-from typing import Any
+from typing import Any, TYPE_CHECKING, Tuple, Sequence, List
+
+if TYPE_CHECKING:
+    from sequence.data.utils import Language
+    from torch.nn.utils.rnn import PackedSequence
 
 logger = logging.getLogger(__name__)
 logger.addHandler(TqdmLoggingHandler())
 
 
 class DatasetABC(TorchDataSet):
-    def __init__(self, parent: Any, language, device: str):
+    def __init__(self, parent: Any, language: Language, device: str):
         """
 
         Parameters
@@ -35,6 +40,11 @@ class DatasetABC(TorchDataSet):
 
 class Query:
     """
+    Query related methods:
+        - get_batch
+        - __get_item__
+        - get_single_row
+
     Required: DatasetABC
     """
 
@@ -46,7 +56,9 @@ class Query:
     def set_idx(self):
         self.idx = np.arange(len(self.parent.data), dtype=np.int32)
 
-    def get_batch(self, start: int, end: int, device: str = "cpu"):
+    def get_batch(
+        self, start: int, end: int, device: str = "cpu"
+    ) -> Tuple[PackedSequence, torch.Tensor]:
         """
         Get a slice from the dataset.
 
@@ -66,10 +78,12 @@ class Query:
         idx = self.parent.idx[start:end]
         return self.__getitem__(idx, device)
 
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self.parent.data)
 
-    def __getitem__(self, idx: int, device: str = None):
+    def __getitem__(
+        self, idx: int, device: str = None
+    ) -> Tuple[PackedSequence, torch.Tensor]:
         if isinstance(idx, int):
             idx = [idx]
         x = self.parent.data[idx].compute()
@@ -88,7 +102,7 @@ class Query:
             padded,
         )
 
-    def get_single_row(self, i: int):
+    def get_single_row(self, i: int) -> torch.Tensor:
         # remove the EOS and -1 Pad
         return self.__getitem__(i)[1].T.flatten()[:-2]
 
@@ -101,12 +115,12 @@ class TransitionMatrix:
     Required: Query, DatasetABC
     """
 
-    def __init__(self, parent):
+    def __init__(self, parent: Any):
         self.parent = parent
         self._trans_matrix = None
 
     @property
-    def transition_matrix(self):
+    def transition_matrix(self) -> np.ndarray:
         if self._trans_matrix is None:
             logger.info("creating transition matrix...")
             rank = self.parent.language.vocabulary_size
@@ -128,20 +142,21 @@ class TransitionMatrix:
 
 class Transform:
     """
+    Transform a sentence: List[str] to indexes: tensor[int]
     Required: DatasetABC
     """
 
     def __init__(
         self,
-        parent,
-        buffer_size,
-        min_len,
-        max_len,
-        chunk_size,
-        sentences,
-        skip,
-        allow_con_dup,
-        mask=True,
+        parent: Any,
+        buffer_size: int,
+        min_len: int,
+        max_len: int,
+        chunk_size: int,
+        sentences: List[List[str]],
+        skip: Sequence[str],
+        allow_con_dup: bool,
+        mask: bool = True,
     ):
         self.parent = parent
         self.buffer_size = buffer_size
@@ -156,7 +171,7 @@ class Transform:
             self.transform_data()
             self.paths = None  # Free memory
 
-    def transform_sentence(self, s):
+    def transform_sentence(self, s: List[str]) -> np.ndarray[np.int64]:
         """
         Transform sentence of string to integers.
 
@@ -201,7 +216,7 @@ class Transform:
         return np.array(idx)
 
     # https://blog.dask.org/2019/06/20/load-image-data
-    def _gen(self, i, j, size):
+    def _gen(self, i: int, j: int, size: int) -> np.ndarray[np.int64]:
         """
         Note: Function has one time side effect due
         to self.transform_sentence

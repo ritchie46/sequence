@@ -4,7 +4,7 @@ from collections import defaultdict
 import string
 from sequence.data import traits
 from enum import IntEnum
-from typing import List, Union
+from typing import List, Dict, Optional, Union, Sequence
 
 
 class Tokens(IntEnum):
@@ -14,17 +14,19 @@ class Tokens(IntEnum):
 
 
 class Language:
+    """
+    The vocabulary of a dataset. This will map the unique strings to indexes that map to the embeddings.
+    You can also provide custom embeddings object.
+    """
+
     def __init__(
         self,
-        words: Union[List[str], None] = None,
+        words: Optional[List[str]] = None,
         lower: bool = True,
         remove_punctuation: bool = True,
-        custom_embeddings: Union[torch.FloatTensor, None] = None,
+        custom_embeddings: Optional[torch.FloatTensor] = None,
     ):
         """
-        The vocabulary of a dataset. This will map the unique strings to indexes that map to the embeddings.
-        You can also provide custom embeddings object.
-
         Parameters
         ----------
         words
@@ -49,7 +51,10 @@ class Language:
             self.register(words)
         self.custom_embeddings = custom_embeddings
 
-    def clean(self, word):
+    def clean(self, word: str) -> str:
+        """
+        Transform str to lowercase and optionally remove punctuation
+        """
         if self.lower:
             word = word.lower()
         if self.remove_punctuation:
@@ -58,29 +63,37 @@ class Language:
             word = word.translate(self.translation_table)
         return word
 
-    def register(self, words):
+    def register(self, words: List[str]):
         [self.register_single_word(w) for w in words]
 
-    def register_single_word(self, word):
+    def register_single_word(self, word: str):
+        """
+        Register words as indexes
+
+        Parameters
+        ----------
+        word
+            unique word
+        """
         c = self.clean(word)
         if len(c) > 0:
             self.w2i[c] = len(self.w2i)
 
     @property
-    def i2w(self):
+    def i2w(self) -> Dict[int, Optional[str]]:
         d = defaultdict(lambda: None)
         d.update({v: k for k, v in self.w2i.items()})
         return d
 
     @property
-    def vocabulary_size(self):
+    def vocabulary_size(self) -> int:
         return len(self.w2i)
 
     @property
-    def words(self):
+    def words(self) -> List[str]:
         return list(self.w2i.keys())
 
-    def translate_batch(self, padded):
+    def translate_batch(self, padded: torch.tensor) -> np.ndarray:
         """
 
         Parameters
@@ -90,7 +103,7 @@ class Language:
 
         Returns
         -------
-        out : np.Array
+        out : np.Array[int]
             Array with matching words. Shape: (seq_len, batch)
         """
         # Only eval once
@@ -101,13 +114,13 @@ class Language:
             padded = padded.cpu().data.numpy()
         return np.vectorize(d.get)(padded)
 
-    def __getitem__(self, item):
+    def __getitem__(self, item: Union[int, str]) -> Union[int, str]:
         if isinstance(item, int):
             return self.i2w[item]
         else:
             return self.w2i[item]
 
-    def __contains__(self, item):
+    def __contains__(self, item: Union[int, str]) -> bool:
         if isinstance(item, str):
             return self.clean(item) in self.w2i
         else:
@@ -117,20 +130,23 @@ class Language:
 class Dataset(
     traits.Query, traits.TransitionMatrix, traits.Transform, traits.DatasetABC
 ):
+    """
+    Dataset used in training. This has some lazy operations due to dask usage.
+    """
+
     def __init__(
         self,
-        sentences,
-        language,
-        skip=(),
-        buffer_size=int(1e4),
-        max_len=None,
-        min_len=1,
-        device="cpu",
-        chunk_size="auto",
-        allow_con_dup=True,
+        sentences: List[List[str]],
+        language: Language,
+        skip: Sequence[str] = (),
+        buffer_size: int = int(1e4),
+        max_len: Optional[int] = None,
+        min_len: int = 1,
+        device: str = "cpu",
+        chunk_size: Union[int, str] = "auto",
+        allow_con_dup: bool = True,
     ):
         """
-
         Parameters
         ----------
         sentences : list[list[str]]
@@ -217,16 +233,20 @@ class ArrayWrap(np.ndarray):
 
 
 class DatasetEager(Dataset):
+    """
+    The eager variation of Dataset. This class doesn't use Dask.
+    """
+
     def __init__(
         self,
-        sentences,
-        language=None,
-        skip=(),
-        buffer_size=int(1e4),
-        max_len=None,
-        min_len=1,
-        device="cpu",
-        chunk_size="auto",
+        sentences: List[List[str]],
+        language: Optional[Language] = None,
+        skip: Sequence[str] = (),
+        buffer_size: int = int(1e4),
+        max_len: Optional[int] = None,
+        min_len: int = 1,
+        device: str = "cpu",
+        chunk_size: str = "auto",
     ):
         super().__init__(
             sentences=sentences,
@@ -240,17 +260,6 @@ class DatasetEager(Dataset):
         )
 
     def transform_data(self):
-        """
-        The sentences containing of string values will be
-        transformed to a dask dataframe as integers.
-
-        Parameters
-        ----------
-        paths : list[list[str]]
-            Sentences with a variable length.
-        max_len : int
-            Maximum length to use in the dataset.
-        """
         if self.max_len is None:
             self.max_len = max(map(len, self.paths))
 
@@ -278,15 +287,19 @@ class DatasetEager(Dataset):
 
 
 class DatasetInference(traits.Query, traits.Transform, traits.DatasetABC):
+    """
+    Dataset used during inference.
+    """
+
     def __init__(
         self,
-        sentences,
-        language,
-        buffer_size=int(1e4),
-        max_len=None,
-        min_len=1,
-        device="cpu",
-        chunk_size="auto",
+        sentences: List[List[str]],
+        language: Language,
+        buffer_size: int = int(1e4),
+        max_len: Optional[int] = None,
+        min_len: int = 1,
+        device: str = "cpu",
+        chunk_size: str = "auto",
     ):
         traits.DatasetABC.__init__(self, self, language=language, device=device)
         traits.Query.__init__(self, self)
@@ -303,7 +316,7 @@ class DatasetInference(traits.Query, traits.Transform, traits.DatasetABC):
             mask=False,
         )
 
-    def transform_sentence(self, s):
+    def transform_sentence(self, s: List[str]) -> np.ndarray:
         """
         Transform sentence of string to integers.
 
