@@ -67,7 +67,7 @@ class Language:
 
     @staticmethod
     def init_custom_emb(
-        custom_embeddings: Optional[np.ndarray],
+        custom_embeddings: Optional[torch.Tensor],
     ) -> Optional[np.ndarray]:
         if custom_embeddings is not None:
             # we need to concat 3 embeddings for EOS, SOS and UNKNOWN
@@ -79,7 +79,9 @@ class Language:
             pre[0, 0] = 1
             pre[1, 1] = 1
             pre[2, 2] = 1
-            return np.concatenate((pre, custom_embeddings), axis=0)
+            return torch.tensor(
+                np.concatenate((pre, custom_embeddings), axis=0), dtype=torch.float32
+            )
 
     def clean(self, word: str) -> str:
         """

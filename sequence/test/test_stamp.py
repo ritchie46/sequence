@@ -1,5 +1,6 @@
 import torch
 from sequence.test import language, words, dataset, paths
+from sequence.data.utils import Language
 from sequence.model.stamp import (
     STMP,
     trilinear_composition,
@@ -153,3 +154,25 @@ def test_attention():
 
     _, ai = att(e, return_attention_factors=True)
     assert ai[-1][0, 0] == a_0
+
+
+def test_custom_embedding():
+    emb_size = 5
+    vocab_size = 3
+    emb = np.ones((vocab_size, emb_size))
+    ids = ["a", "b", "c"]
+
+    lang = Language(words=ids, custom_embeddings=emb)
+    # 3 is are the words SOS, EOS and UNKNOWN
+    assert lang.vocabulary_size == vocab_size + 3
+    assert lang.custom_embeddings.shape == (vocab_size + 3, emb_size)
+
+    m = STMP(
+        vocabulary_size=lang.vocabulary_size,
+        embedding_dim=emb_size,
+        custom_embeddings=lang.custom_embeddings,
+    )
+
+    # aggregate values 1 are from one hot encode SOS, EOS and UNKNOWN
+    # aggregate values 5 are the custom embeddings
+    assert list(m.emb.weight.sum(1).numpy()) == [1.0, 1.0, 1.0, 5.0, 5.0, 5.0]
