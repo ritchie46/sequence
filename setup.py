@@ -12,7 +12,7 @@ setup(
         "numpy>=1.17.3",
         "torch>=1.4.0",
         "tensorboardX",
-        "dumpster @ git+ssh://git@github.com/ritchie46/dumpster.git#egg=dumpster'",
+        "dumpster @ git+https://github.com/ritchie46/dumpster.git#egg=dumpster",
         "patool~=1.12",
         "pyunpack~=0.1.2",
         "nltk>=3.4.4",
@@ -22,5 +22,4 @@ setup(
         "tqdm~=4.40.0",
     ],
     python_requires=">=3.6",
-    # dependency_links=["https://g/ithub.com/ritchie46/dumpster/tarball/master"],
 )
