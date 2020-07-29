@@ -8,7 +8,7 @@ from dumpster.registries.file import ModelRegistry
 import torch
 import argparse
 from torch import nn
-from typing import List, Callable, TYPE_CHECKING, Tuple
+from typing import List, Callable, TYPE_CHECKING, Tuple, Type
 
 if TYPE_CHECKING:
     from sequence.data.utils import Dataset, Language
@@ -47,18 +47,18 @@ def load_dataset(args: argparse.Namespace) -> Tuple[Dataset, Dataset, Language]:
 
 
 def load_model_registry(
-    args: argparse.Namespace, cls: nn.Module, name: str, **model_kwargs: dict
+    args: argparse.Namespace, cls: Type[nn.Module], name: str, **model_kwargs: dict
 ) -> ModelRegistry:
     if args.model_registry_path is None:
         model_registry = ModelRegistry(name)
         model_registry.register(cls, insert_methods="pytorch", **model_kwargs)
     else:
         with open(args.model_registry_path, "rb") as f:
-            model_registry = ModelRegistry().load(f)
+            model_registry = ModelRegistry("").load(f)
     return model_registry
 
 
-def create_dirs(args: argparse.Namespace, name: str) -> (str, str):
+def create_dirs(args: argparse.Namespace, name: str) -> Tuple[str, str]:
     os.makedirs(args.storage_dir, exist_ok=True)
     artifact_dir = os.path.join(args.storage_dir, "artifacts", name)
     os.makedirs(os.path.join(artifact_dir), exist_ok=True)

@@ -10,7 +10,7 @@ setup(
     packages=find_packages(),
     install_requires=[
         "numpy>=1.17.3",
-        "torch>=1.4.0",
+        "torch==1.4.0",
         "tensorboardX",
         "dumpster",
         "patool~=1.12",
@@ -21,6 +21,6 @@ setup(
         "scipy~=1.3.2",
         "tqdm~=4.40.0",
     ],
-    python_requires=">=3.6",
+    python_requires=">3.6",
     dependency_links=["https://github.com/ritchie46/dumpster#egg=dumpster"],
 )

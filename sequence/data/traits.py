@@ -8,7 +8,7 @@ import tqdm
 import dask.array as da
 import dask
 from torch.utils.data import Dataset as TorchDataSet
-from typing import Any, TYPE_CHECKING, Tuple, Sequence, List
+from typing import Any, TYPE_CHECKING, Tuple, Sequence, List, Union, Optional
 
 if TYPE_CHECKING:
     from sequence.data.utils import Language
@@ -82,7 +82,7 @@ class Query:
         return len(self.parent.data)
 
     def __getitem__(
-        self, idx: int, device: str = None
+        self, idx: Union[List[int], int], device: str = None
     ) -> Tuple[PackedSequence, torch.Tensor]:
         if isinstance(idx, int):
             idx = [idx]
@@ -117,7 +117,7 @@ class TransitionMatrix:
 
     def __init__(self, parent: Any):
         self.parent = parent
-        self._trans_matrix = None
+        self._trans_matrix: Optional[np.ndarray] = None
 
     @property
     def transition_matrix(self) -> np.ndarray:
@@ -151,8 +151,8 @@ class Transform:
         parent: Any,
         buffer_size: int,
         min_len: int,
-        max_len: int,
-        chunk_size: int,
+        max_len: Optional[int],
+        chunk_size: Union[str, int],
         sentences: List[List[str]],
         skip: Sequence[str],
         allow_con_dup: bool,
@@ -167,11 +167,11 @@ class Transform:
         self.allow_duplicates = allow_con_dup
         self.mask = mask
         if sentences is not None:
-            self.paths = sentences
+            self.paths: Optional[List[List[str]]] = sentences
             self.transform_data()
             self.paths = None  # Free memory
 
-    def transform_sentence(self, s: List[str]) -> np.ndarray[np.int64]:
+    def transform_sentence(self, s: List[str]) -> np.ndarray:
         """
         Transform sentence of string to integers.
 
@@ -185,6 +185,7 @@ class Transform:
         s : np.array[int]
             A -1 padded sequence of shape (self.max_len, )
         """
+        assert self.max_len is not None
         s = list(
             filter(lambda x: len(x) > 0, [self.parent.language.clean(w) for w in s])
         )
@@ -216,11 +217,12 @@ class Transform:
         return np.array(idx)
 
     # https://blog.dask.org/2019/06/20/load-image-data
-    def _gen(self, i: int, j: int, size: int) -> np.ndarray[np.int64]:
+    def _gen(self, i: int, j: int, size: int) -> np.ndarray:
         """
         Note: Function has one time side effect due
         to self.transform_sentence
         """
+        assert self.paths is not None
         j = min(size, j)
 
         # Sentences to integers

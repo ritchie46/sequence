@@ -3,5 +3,8 @@ python:
 - "3.7"
 install:
 - pip install -r requirements.txt
+- pip install mypy black
 script:
 - pytest sequence/test/*.py
+- mypy .
+- black --check .

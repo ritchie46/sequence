@@ -57,10 +57,14 @@ class Language:
         if remove_punctuation:
             self.translation_table = str.maketrans("", "", string.punctuation)
         else:
-            self.remove_punctuation = None
+            self.remove_punctuation = False
         # Warning. Don't change index 0, 1, and 2
         # These are used in the models!
-        self.w2i = {"EOS": Tokens.EOS, "SOS": Tokens.SOS, "UNKNOWN": Tokens.UNKNOWN}
+        self.w2i: Dict[str, int] = {
+            "EOS": Tokens.EOS,
+            "SOS": Tokens.SOS,
+            "UNKNOWN": Tokens.UNKNOWN,
+        }
         if words is not None:
             self.register(words)
         self.custom_embeddings = self.init_custom_emb(custom_embeddings)
@@ -82,6 +86,7 @@ class Language:
             return torch.tensor(
                 np.concatenate((pre, custom_embeddings), axis=0), dtype=torch.float32
             )
+        return None
 
     def clean(self, word: str) -> str:
         """
@@ -113,7 +118,7 @@ class Language:
 
     @lazyprop
     def i2w(self) -> Dict[int, Optional[str]]:
-        d = defaultdict(lambda: None)
+        d: Dict[int, Optional[str]] = defaultdict(lambda: None)
         d.update({v: k for k, v in self.w2i.items()})
         return d
 
@@ -125,7 +130,7 @@ class Language:
     def words(self) -> List[str]:
         return list(self.w2i.keys())
 
-    def translate_batch(self, padded: torch.tensor) -> np.ndarray:
+    def translate_batch(self, padded: torch.Tensor) -> np.ndarray:
         """
 
         Parameters
@@ -169,10 +174,10 @@ class Dataset(
     def __init__(
         self,
         sentences: List[List[str]],
-        language: Language,
+        language: Optional[Language],
         skip: Sequence[str] = (),
         buffer_size: int = int(1e4),
-        max_len: Optional[int] = None,
+        max_len: int = None,
         min_len: int = 1,
         device: str = "cpu",
         chunk_size: Union[int, str] = "auto",
@@ -366,6 +371,7 @@ class DatasetInference(traits.Query, traits.Transform, traits.DatasetABC):
         s : np.array[int]
             A -1 padded sequence of shape (self.max_len, )
         """
+        assert self.max_len is not None
         s = list(filter(lambda x: len(x) > 0, [self.language.clean(w) for w in s]))
 
         # All the sentences are -1 padded
