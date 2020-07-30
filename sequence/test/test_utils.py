@@ -56,6 +56,8 @@ def test_inference_dset(paths, dataset):
     # Assert that the new words are assigned to the UNKNOWN field.
     assert (inference_ds.data.compute() == Tokens.UNKNOWN.value).sum() > 0
     assert (dataset.data.compute() == Tokens.UNKNOWN.value).sum() == 0
+    print(inference_ds.data)
+    assert len(inference_ds) == len(new_paths)
 
 
 def test_custom_emb():

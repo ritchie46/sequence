@@ -159,7 +159,6 @@ class Transform:
         mask: bool = True,
     ):
         self.parent = parent
-        self.buffer_size = buffer_size
         self.min_len = min_len
         self.max_len = max_len
         self.chunk_size = chunk_size
@@ -167,9 +166,12 @@ class Transform:
         self.allow_duplicates = allow_con_dup
         self.mask = mask
         if sentences is not None:
+            self.buffer_size = min(len(sentences), buffer_size)
             self.paths: Optional[List[List[str]]] = sentences
             self.transform_data()
             self.paths = None  # Free memory
+        else:
+            self.buffer_size = buffer_size
 
     def transform_sentence(self, s: List[str]) -> np.ndarray:
         """
