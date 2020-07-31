@@ -69,6 +69,6 @@ if __name__ == "__main__":
     stamp_parser.add_argument("--nonlinearity", type=str, default="tanh")
     stamp_parser.add_argument("--model", type=str, default="stmp", help="stmp or stamp")
     stamp_parser.add_argument("--scale_loss_by_lengths", type=str, default="true")
-
+    stamp_parser.add_argument("--top_k", type=int, default=20)
     args = parser.parse_args()
     args.func(args)
