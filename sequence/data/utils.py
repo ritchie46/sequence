@@ -379,6 +379,9 @@ class DatasetInference(traits.Query, traits.Transform, traits.DatasetABC):
         last_w = None
 
         if len(s) > self.max_len or len(s) < self.min_len:
+            # prevents returning an IndexError during inference
+            idx[0] = Tokens.SOS
+            idx[1] = Tokens.EOS
             # will be removed jit
             return idx
 
