@@ -75,9 +75,9 @@ class Language:
     ) -> Optional[np.ndarray]:
         if custom_embeddings is not None:
             # we need to concat 3 embeddings for EOS, SOS and UNKNOWN
-            row, emb_dim = custom_embeddings.shape
+            _, emb_dim = custom_embeddings.shape
 
-            pre = np.zeros((row, emb_dim))
+            pre = np.zeros((3, emb_dim))
             # one hot encode. TODO: maybe something smarter?
             # can fail if embedding size is two. It happened to you? You can't be serious!
             pre[0, 0] = 1
