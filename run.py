@@ -70,5 +70,12 @@ if __name__ == "__main__":
     stamp_parser.add_argument("--model", type=str, default="stmp", help="stmp or stamp")
     stamp_parser.add_argument("--scale_loss_by_lengths", type=str, default="true")
     stamp_parser.add_argument("--top_k", type=int, default=20)
+    stamp_parser.add_argument(
+        "--n_log_range",
+        type=int,
+        default=50,
+        help="range for validating the model during training for each epoch, because validating on total dataset is too expensive",
+    )
+
     args = parser.parse_args()
     args.func(args)
