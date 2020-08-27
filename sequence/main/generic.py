@@ -52,6 +52,12 @@ def load_model_registry(
     if args.model_registry_path is None:
         model_registry = ModelRegistry(name)
         model_registry.register(cls, insert_methods="pytorch", **model_kwargs)
+
+        # delete custom embeddings after model is initialized.
+        # we delete  custom embeddings because dumpster cannot serialize torch.Tensor kwargs.
+        # they are also not needed as they will be restored during loading from the model artifacts
+        if "custom_embeddings" in model_kwargs:
+            del model_registry.model_kwargs["custom_embeddings"]
     else:
         with open(args.model_registry_path, "rb") as f:
             model_registry = ModelRegistry("").load(f)
