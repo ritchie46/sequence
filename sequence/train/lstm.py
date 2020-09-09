@@ -1,8 +1,7 @@
-import logging
-from sequence.model.stamp import det_loss
-import torch
+from sequence.model.lstm import det_loss
 from sequence.utils import backward
 from sequence.callbacks import apply as apply_callbacks
+import logging
 
 logger = logging.getLogger(__name__)
 
@@ -21,32 +20,12 @@ def run_epoch(
     callbacks=[],
     scale_loss_by_lengths=True,
 ):
-    """
-    Train one epoch.
-
-    Parameters
-    ----------
-    epoch : int
-    model : torch.nn.Module
-    optim : torch.Optimizer
-    dataset_train : sequence.data.utils.Dataset
-    batch_size : int
-    device : str
-        "cpu" or "cuda"
-    tensorboard_writer : SummaryWriter
-    global_step : int
-        Step counter
-    n_batches : int
-        How many batches to run before epoch is regarded complete.
-        Default = N / batch_size
-    callbacks : list[function[**kwargs]]
-    scale_loss_by_lengths : bool
-    """
     model.train()
     n_total = len(dataset_train)
-    dataset_train.shuffle()
     if n_batches is None:
         n_batches = n_total // batch_size
+
+    state_h, state_c = model.init_state(batch=batch_size)
 
     c = 0
     for i in range(n_batches):
@@ -66,7 +45,12 @@ def run_epoch(
             packed_padded,
             scale_loss_by_lengths=scale_loss_by_lengths,
             max_len=dataset_train.max_len,
+            state_h=state_h,
+            state_c=state_c,
         )
+        state_h = state_h.detach()
+        state_c = state_c.detach()
+
         backward(loss, optim)
         optim.step()
 

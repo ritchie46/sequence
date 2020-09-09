@@ -76,9 +76,14 @@ def log_ranking_metrics(n, k):
                 packed_padded, padded = ds.get_batch(
                     i * 100, i * 100 + 100, device=device
                 )
+                if model.__class__.__name__ == "LSTM":
+                    state_h, state_c = model.init_state(padded.shape[1])
 
                 with torch.no_grad():
-                    pred = model(packed_padded)
+                    if model.__class__.__name__ == "LSTM":
+                        pred, _ = model(packed_padded, (state_h, state_c))
+                    else:
+                        pred = model(packed_padded)
 
                 target = padded.T[:, 1:]
                 p_at_k, mrr = metrics.rank_scores(

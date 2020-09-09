@@ -20,7 +20,7 @@ class Embedding(nn.Module):
             self.vocabulary_size = custom_embeddings.shape[0]
             self.embedding_dim = custom_embeddings.shape[1]
             self.emb = nn.Embedding(*custom_embeddings.shape, _weight=custom_embeddings)  # type: ignore
-            self.emb.weight.requires_grad = False
+            self.emb.weight.requires_grad = True
 
     def apply_emb(self, x, pack=False):
         """
