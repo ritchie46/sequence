@@ -337,6 +337,7 @@ class DatasetInference(traits.Query, traits.Transform, traits.DatasetABC):
         min_len: int = 1,
         device: str = "cpu",
         chunk_size: str = "auto",
+        mask: bool = True,
     ):
         traits.DatasetABC.__init__(self, self, language=language, device=device)
         traits.Query.__init__(self, self)
@@ -350,7 +351,7 @@ class DatasetInference(traits.Query, traits.Transform, traits.DatasetABC):
             sentences=sentences,
             skip=(),
             allow_con_dup=False,
-            mask=False,
+            mask=mask,
         )
 
     def transform_sentence(self, s: List[str]) -> np.ndarray:

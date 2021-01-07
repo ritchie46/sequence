@@ -1,6 +1,6 @@
 from sequence.data.utils import DatasetInference
 from sequence.model.stamp import STAMP
-from sequence.test import language, paths, words
+from sequence.test import language, paths, paths_long, words
 import torch
 
 
@@ -22,3 +22,22 @@ def test_batch_inference(language, paths):
         assert out.shape[1] == padded.abs().argmin(0).max() + 1
         # Dim 3, vocabulary_size
         assert out.shape[2] == dataset.language.vocabulary_size
+
+
+def test_inference_ds(language, paths, paths_long):
+    torch.manual_seed(0)
+
+    dataset = DatasetInference(
+        sentences=paths, language=language, min_len=1, max_len=100
+    )
+    assert len(dataset) == len(paths), "dataset short failed"
+
+    dataset_long = DatasetInference(
+        sentences=paths_long, language=language, min_len=1, max_len=100, mask=True
+    )
+    assert len(dataset_long) == len(paths_long), "dataset long failed"
+
+    dataset_long = DatasetInference(
+        sentences=paths_long, language=language, min_len=1, max_len=100, mask=False
+    )
+    assert len(dataset_long) != len(paths_long), "dataset long failed"
